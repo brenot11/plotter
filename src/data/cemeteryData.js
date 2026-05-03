@@ -76,6 +76,8 @@ export function makeEmptyInternment(plotId, graveLabel) {
     causeOfDeath:      '',
     nearestRelative:   '',
     burialPosition:    '',
+    markerType:        '',
+    markerNotes:       '',
     remarks:           '',
   }
 }

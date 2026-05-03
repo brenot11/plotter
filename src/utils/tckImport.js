@@ -208,6 +208,8 @@ export function parseTCKBackup({ records, purchasers, cemetery, lots, maps }) {
       causeOfDeath:      rec.DeathCause || '',
       nearestRelative:   rec.NearestRelative || '',
       burialPosition:    '',   // comes from CustomFieldsData — add later
+      markerType:        rec.SocialState || '',
+      markerNotes:       '',
       remarks:           rec.Remarks || '',
       // Extra TCK fields preserved for reference
       _tckRecID:         rec.RecID,
@@ -232,7 +234,6 @@ export function parseTCKBackup({ records, purchasers, cemetery, lots, maps }) {
         grave:       graveBase,
         lotType:     lotMap[rec.LotID] || '',
         statusOverride: null,
-        markerType:  rec.Vault?.includes('Marker') ? rec.Vault : (rec.SocialState || ''),
         purchaserLastName:  purch?.OwnerLastName  || '',
         purchaserFirstName: purch?.OwnerFirstName || '',
         purchaserAddress:   [purch?.OwnerAddress1, purch?.OwnerAddress2].filter(Boolean).join(', ') || '',
@@ -302,6 +303,8 @@ export function parseTCKBackup({ records, purchasers, cemetery, lots, maps }) {
         causeOfDeath:      internment.causeOfDeath,
         nearestRelative:   internment.nearestRelative,
         burialPosition:    internment.burialPosition,
+        markerType:        internment.markerType,
+        markerNotes:       internment.markerNotes,
         remarks:           internment.remarks,
       }
       internment._original    = { ...snap }  // updated on commit

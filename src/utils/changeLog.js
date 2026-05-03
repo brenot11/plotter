@@ -116,11 +116,12 @@ export const FIELD_LABELS = {
   nearestRelative:   'Nearest Relative',
   burialPosition:    'Burial Position',
   graveLabel:        'Grave Label',
+  markerType:        'Marker Type',
+  markerNotes:       'Marker Notes',
   remarks:           'Remarks',
   // Plot fields
   lotType:           'Lot Type',
   statusOverride:    'Status Override',
-  markerType:        'Marker Type',
   purchaserLastName: 'Purchaser Last Name',
   purchaserFirstName:'Purchaser First Name',
   purchaserAddress:  'Purchaser Address',
@@ -155,12 +156,13 @@ export const INTERNMENT_TRACKED_FIELDS = [
   'interredLastName','interredFirstName','birthDate','deathDate','age',
   'gender','isCremains','interredDate','internmentNumber','veteran',
   'birthPlace','lateResidence','undertaker','causeOfDeath',
-  'nearestRelative','burialPosition','graveLabel','remarks',
+  'nearestRelative','burialPosition','graveLabel',
+  'markerType','markerNotes','remarks',
 ]
 
 // Fields we track for plots
 export const PLOT_TRACKED_FIELDS = [
-  'lotType','statusOverride','markerType','purchaserLastName',
+  'lotType','statusOverride','purchaserLastName',
   'purchaserFirstName','purchaserAddress','ownerPhone','ownerEmail',
   'purchaseDate','purchasePrice','remarks',
 ]

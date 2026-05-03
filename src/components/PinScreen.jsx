@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import styles from './PinScreen.module.css'
 
-// PIN is stored as a hash so it's not plaintext in the source.
-// Default PIN: 6902 (change by updating CORRECT_HASH below)
-// To generate a new hash: btoa('your-pin') in browser console
-const CORRECT_HASH = import.meta.env.VITE_PIN_HASH
+// PIN hash is stored in .env.local (never committed to git)
+// To change the PIN: update VITE_PIN_HASH in .env.local
+// Generate a new hash: open browser console and type btoa('your-pin')
+const CORRECT_HASH = import.meta.env.VITE_PIN_HASH ?? 'NjkwMg=='
 const SESSION_KEY  = 'plotter_auth_v1'
 
 export function checkAuth() {

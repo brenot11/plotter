@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import StatusBadge from './StatusBadge'
+import MarkerPanel from './MarkerPanel'
 import {
-  STATUSES, LOT_TYPES, MARKER_TYPES, UNDERTAKERS,
+  STATUSES, LOT_TYPES, UNDERTAKERS,
   CAUSES, VETERAN_BRANCHES, GENDERS, BURIAL_POSITIONS,
   derivePlotStatus, makeEmptyInternment,
 } from '../data/cemeteryData'
@@ -294,114 +295,126 @@ function InternmentDetail({ plot, internment: initInt, isNew, onBack, onSave, on
       </div>
 
       <div className={styles.body}>
-        <Section title="Identification">
-          <Grid>
-            <F label="Grave Label">
-              {editing ? <In value={int.graveLabel} onChange={v => set('graveLabel', v)} />
-                : <Mono style={fv('graveLabel')}>{int.graveLabel}</Mono>}
-            </F>
-            <F label="Internment #">
-              {editing ? <In value={int.internmentNumber} onChange={v => set('internmentNumber', v)} />
-                : <Mono style={fv('internmentNumber')}>{int.internmentNumber || <Em />}</Mono>}
-            </F>
-            <F label="Is Cremains">
-              {editing ? <Sel value={int.isCremains} options={['No','Yes']} onChange={v => set('isCremains', v)} />
-                : <span style={fv('isCremains')}>{int.isCremains || <Em />}</span>}
-            </F>
-            <F label="Interred Date">
-              {editing ? <In value={int.interredDate} onChange={v => set('interredDate', v)} placeholder="MM/DD/YYYY" />
-                : <span style={fv('interredDate')}>{int.interredDate || <Em />}</span>}
-            </F>
-            <F label="Burial Position">
-              {editing ? <Sel value={int.burialPosition} options={BURIAL_POSITIONS} onChange={v => set('burialPosition', v)} allowEmpty />
-                : <span style={fv('burialPosition')}>{int.burialPosition || <Em />}</span>}
-            </F>
-            <F label="Undertaker">
-              {editing ? <Sel value={int.undertaker} options={UNDERTAKERS} onChange={v => set('undertaker', v)} allowEmpty />
-                : <span style={fv('undertaker')}>{int.undertaker || <Em />}</span>}
-            </F>
-          </Grid>
-        </Section>
+        <div className={styles.threeCol}>
+          {/* ── Left two columns: data fields ─────────────────── */}
+          <div className={styles.dataColumns}>
+            <Section title="Identification">
+              <Grid>
+                <F label="Grave Label">
+                  {editing ? <In value={int.graveLabel} onChange={v => set('graveLabel', v)} />
+                    : <Mono style={fv('graveLabel')}>{int.graveLabel}</Mono>}
+                </F>
+                <F label="Internment #">
+                  {editing ? <In value={int.internmentNumber} onChange={v => set('internmentNumber', v)} />
+                    : <Mono style={fv('internmentNumber')}>{int.internmentNumber || <Em />}</Mono>}
+                </F>
+                <F label="Is Cremains">
+                  {editing ? <Sel value={int.isCremains} options={['No','Yes']} onChange={v => set('isCremains', v)} />
+                    : <span style={fv('isCremains')}>{int.isCremains || <Em />}</span>}
+                </F>
+                <F label="Interred Date">
+                  {editing ? <In value={int.interredDate} onChange={v => set('interredDate', v)} placeholder="MM/DD/YYYY" />
+                    : <span style={fv('interredDate')}>{int.interredDate || <Em />}</span>}
+                </F>
+                <F label="Burial Position">
+                  {editing ? <Sel value={int.burialPosition} options={BURIAL_POSITIONS} onChange={v => set('burialPosition', v)} allowEmpty />
+                    : <span style={fv('burialPosition')}>{int.burialPosition || <Em />}</span>}
+                </F>
+                <F label="Undertaker">
+                  {editing ? <Sel value={int.undertaker} options={UNDERTAKERS} onChange={v => set('undertaker', v)} allowEmpty />
+                    : <span style={fv('undertaker')}>{int.undertaker || <Em />}</span>}
+                </F>
+              </Grid>
+            </Section>
 
-        <Section title="Person">
-          <Grid>
-            <F label="Last Name">
-              {editing ? <In value={int.interredLastName} onChange={v => set('interredLastName', v)} />
-                : <span style={fv('interredLastName')}>{int.interredLastName || <Em />}</span>}
-            </F>
-            <F label="First Name">
-              {editing ? <In value={int.interredFirstName} onChange={v => set('interredFirstName', v)} />
-                : <span style={fv('interredFirstName')}>{int.interredFirstName || <Em />}</span>}
-            </F>
-            <F label="Birth Date">
-              {editing ? <In value={int.birthDate} onChange={v => set('birthDate', v)} placeholder="MM/DD/YYYY" />
-                : <span style={fv('birthDate')}>{int.birthDate || <Em />}</span>}
-            </F>
-            <F label="Death Date">
-              {editing ? <In value={int.deathDate} onChange={v => set('deathDate', v)} placeholder="MM/DD/YYYY" />
-                : <span style={fv('deathDate')}>{int.deathDate || <Em />}</span>}
-            </F>
-            <F label="Age">
-              {editing ? <In value={int.age} onChange={v => set('age', v)} />
-                : <span style={fv('age')}>{int.age || <Em />}</span>}
-            </F>
-            <F label="Gender">
-              {editing ? <Sel value={int.gender} options={GENDERS} onChange={v => set('gender', v)} allowEmpty />
-                : <span style={fv('gender')}>{int.gender || <Em />}</span>}
-            </F>
-            <F label="Birth Place">
-              {editing ? <In value={int.birthPlace} onChange={v => set('birthPlace', v)} />
-                : <span style={fv('birthPlace')}>{int.birthPlace || <Em />}</span>}
-            </F>
-            <F label="Late Residence">
-              {editing ? <In value={int.lateResidence} onChange={v => set('lateResidence', v)} />
-                : <span style={fv('lateResidence')}>{int.lateResidence || <Em />}</span>}
-            </F>
-            <F label="Veteran">
+            <Section title="Person">
+              <Grid>
+                <F label="Last Name">
+                  {editing ? <In value={int.interredLastName} onChange={v => set('interredLastName', v)} />
+                    : <span style={fv('interredLastName')}>{int.interredLastName || <Em />}</span>}
+                </F>
+                <F label="First Name">
+                  {editing ? <In value={int.interredFirstName} onChange={v => set('interredFirstName', v)} />
+                    : <span style={fv('interredFirstName')}>{int.interredFirstName || <Em />}</span>}
+                </F>
+                <F label="Birth Date">
+                  {editing ? <In value={int.birthDate} onChange={v => set('birthDate', v)} placeholder="MM/DD/YYYY" />
+                    : <span style={fv('birthDate')}>{int.birthDate || <Em />}</span>}
+                </F>
+                <F label="Death Date">
+                  {editing ? <In value={int.deathDate} onChange={v => set('deathDate', v)} placeholder="MM/DD/YYYY" />
+                    : <span style={fv('deathDate')}>{int.deathDate || <Em />}</span>}
+                </F>
+                <F label="Age">
+                  {editing ? <In value={int.age} onChange={v => set('age', v)} />
+                    : <span style={fv('age')}>{int.age || <Em />}</span>}
+                </F>
+                <F label="Gender">
+                  {editing ? <Sel value={int.gender} options={GENDERS} onChange={v => set('gender', v)} allowEmpty />
+                    : <span style={fv('gender')}>{int.gender || <Em />}</span>}
+                </F>
+                <F label="Birth Place">
+                  {editing ? <In value={int.birthPlace} onChange={v => set('birthPlace', v)} />
+                    : <span style={fv('birthPlace')}>{int.birthPlace || <Em />}</span>}
+                </F>
+                <F label="Late Residence">
+                  {editing ? <In value={int.lateResidence} onChange={v => set('lateResidence', v)} />
+                    : <span style={fv('lateResidence')}>{int.lateResidence || <Em />}</span>}
+                </F>
+                <F label="Veteran">
+                  {editing
+                    ? <Sel value={int.veteran} options={['', ...VETERAN_BRANCHES]} onChange={v => set('veteran', v)} allowEmpty emptyLabel="No" />
+                    : <span style={int.veteran ? { color: isEdited(int,'veteran') ? EDITED_COLOR : '#fcd34d' } : { color: 'var(--text-secondary)', fontSize: 13 }}>
+                        {int.veteran || 'No'}
+                      </span>
+                  }
+                </F>
+                <F label="Cause of Death">
+                  {editing ? <Sel value={int.causeOfDeath} options={CAUSES} onChange={v => set('causeOfDeath', v)} allowEmpty />
+                    : <span style={fv('causeOfDeath')}>{int.causeOfDeath || <Em />}</span>}
+                </F>
+                <F label="Nearest Relative" full>
+                  {editing ? <In value={int.nearestRelative} onChange={v => set('nearestRelative', v)} />
+                    : <span style={fv('nearestRelative')}>{int.nearestRelative || <Em />}</span>}
+                </F>
+              </Grid>
+            </Section>
+
+            <Section title="Notes">
               {editing
-                ? <Sel value={int.veteran} options={['', ...VETERAN_BRANCHES]} onChange={v => set('veteran', v)} allowEmpty emptyLabel="No" />
-                : <span style={int.veteran ? { color: isEdited(int,'veteran') ? EDITED_COLOR : '#fcd34d' } : { color: 'var(--text-secondary)', fontSize: 13 }}>
-                    {int.veteran || 'No'}
-                  </span>
+                ? <textarea className="field-input" rows={4} value={int.remarks}
+                    onChange={e => set('remarks', e.target.value)} placeholder="Add notes about this internment..." />
+                : <div style={{ fontSize: 14, lineHeight: 1.65, color: int.remarks ? (isEdited(int,'remarks') ? EDITED_COLOR : NORMAL_COLOR) : 'var(--text-muted)', fontStyle: int.remarks ? 'normal' : 'italic' }}>
+                    {int.remarks || 'No notes.'}
+                  </div>
               }
-            </F>
-            <F label="Cause of Death">
-              {editing ? <Sel value={int.causeOfDeath} options={CAUSES} onChange={v => set('causeOfDeath', v)} allowEmpty />
-                : <span style={fv('causeOfDeath')}>{int.causeOfDeath || <Em />}</span>}
-            </F>
-            <F label="Nearest Relative" full>
-              {editing ? <In value={int.nearestRelative} onChange={v => set('nearestRelative', v)} />
-                : <span style={fv('nearestRelative')}>{int.nearestRelative || <Em />}</span>}
-            </F>
-          </Grid>
-        </Section>
+            </Section>
 
-        <Section title="Notes">
-          {editing
-            ? <textarea className="field-input" rows={4} value={int.remarks}
-                onChange={e => set('remarks', e.target.value)} placeholder="Add notes about this internment..." />
-            : <div style={{ fontSize: 14, lineHeight: 1.65, color: int.remarks ? (isEdited(int,'remarks') ? EDITED_COLOR : NORMAL_COLOR) : 'var(--text-muted)', fontStyle: int.remarks ? 'normal' : 'italic' }}>
-                {int.remarks || 'No notes.'}
+            {!isNew && !editing && !confirmDelete && (
+              <div style={{ marginTop: 8 }}>
+                <button className="btn btn-danger" style={{ fontSize: 12 }} onClick={() => setConfirmDelete(true)}>
+                  Delete this internment record
+                </button>
               </div>
-          }
-        </Section>
+            )}
+            {confirmDelete && (
+              <div style={{ marginTop: 12, padding: '12px 14px', background: '#1a0808', border: '1px solid #7f1d1d', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ fontSize: 13, color: '#f87171', marginBottom: 10 }}>Delete this internment record? This cannot be undone.</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-danger" onClick={() => onDelete(int.id)}>Yes, delete</button>
+                  <button className="btn btn-ghost" onClick={() => setConfirmDelete(false)}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
 
-        {!isNew && !editing && !confirmDelete && (
-          <div style={{ marginTop: 8 }}>
-            <button className="btn btn-danger" style={{ fontSize: 12 }} onClick={() => setConfirmDelete(true)}>
-              Delete this internment record
-            </button>
-          </div>
-        )}
-        {confirmDelete && (
-          <div style={{ marginTop: 12, padding: '12px 14px', background: '#1a0808', border: '1px solid #7f1d1d', borderRadius: 'var(--radius-md)' }}>
-            <div style={{ fontSize: 13, color: '#f87171', marginBottom: 10 }}>Delete this internment record? This cannot be undone.</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-danger" onClick={() => onDelete(int.id)}>Yes, delete</button>
-              <button className="btn btn-ghost" onClick={() => setConfirmDelete(false)}>Cancel</button>
-            </div>
-          </div>
-        )}
+          {/* ── Right column: Marker panel ─────────────────────── */}
+          <MarkerPanel
+            internment={int}
+            editing={editing}
+            onChange={(field, value) => set(field, value)}
+          />
+        </div>
       </div>
 
       <div className={styles.footer}>
