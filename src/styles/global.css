@@ -1,0 +1,136 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Near-black backgrounds with cool undertone */
+  --bg-deep:       #0a0b0d;
+  --bg-mid:        #0f1114;
+  --bg-surface:    #161820;
+  --bg-raised:     #1d2028;
+  --bg-hover:      #232633;
+
+  /* Cyan/teal accent — vivid, modern */
+  --accent:        #00d4c8;
+  --accent-dim:    #00897f;
+  --accent-bright: #5ef0e8;
+  --accent-glow:   rgba(0, 212, 200, 0.12);
+
+  /* Text */
+  --text-primary:  #f0f2f5;
+  --text-secondary:#6b7280;
+  --text-muted:    #374151;
+
+  /* Borders — very subtle */
+  --border:        #1f2333;
+  --border-light:  #2a2f42;
+
+  /* Status colors — vivid, saturated, modern */
+  --status-occupied:    #3b82f6;
+  --status-occupied-bg: #0d1a35;
+  --status-occupied-txt:#93c5fd;
+
+  --status-available:    #10b981;
+  --status-available-bg: #042b1e;
+  --status-available-txt:#6ee7b7;
+
+  --status-reserved:    #f59e0b;
+  --status-reserved-bg: #2d1f06;
+  --status-reserved-txt:#fcd34d;
+
+  --status-sold:    #8b5cf6;
+  --status-sold-bg: #1a0d35;
+  --status-sold-txt:#c4b5fd;
+
+  --status-unavailable:    #374151;
+  --status-unavailable-bg: #111318;
+  --status-unavailable-txt:#4b5563;
+
+  --font-sans:  'Geist', 'Inter', system-ui, sans-serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button { font-family: var(--font-sans); cursor: pointer; }
+input, select, textarea { font-family: var(--font-sans); }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+
+/* ── Shared button styles ──────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  line-height: 1;
+  font-family: var(--font-sans);
+}
+.btn-primary {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+.btn-primary:hover {
+  background: var(--accent);
+  color: #0a0b0d;
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border-light);
+  color: var(--text-secondary);
+}
+.btn-ghost:hover {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+.btn-danger {
+  background: transparent;
+  border-color: #7f1d1d;
+  color: #f87171;
+}
+.btn-danger:hover { background: #2d0f0f; }
+
+/* ── Form elements ─────────────────────────────────────────────────────────── */
+.field-input {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 8px 12px;
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 3px rgba(0, 212, 200, 0.08);
+}
+.field-input::placeholder { color: var(--text-muted); }
+select.field-input option { background: var(--bg-surface); }
+textarea.field-input { resize: vertical; min-height: 72px; line-height: 1.6; }
+

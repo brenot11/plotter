@@ -1,0 +1,160 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.card {
+  background: var(--bg-mid);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  width: 360px;
+  max-width: 92vw;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,212,200,0.04);
+}
+
+.header {
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--bg-surface);
+}
+.headerLeft { flex: 1; min-width: 0; }
+
+.location {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+.lotGrave {
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  margin-bottom: 7px;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.name {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.years {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  font-family: var(--font-mono);
+}
+
+.multiBtn {
+  background: rgba(0,212,200,0.1);
+  border: 1px solid rgba(0,212,200,0.25);
+  color: var(--accent);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 2px 7px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.multiBtn:hover {
+  background: rgba(0,212,200,0.2);
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 22px;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+.closeBtn:hover { color: var(--text-primary); }
+
+.body { padding: 12px 16px; }
+
+.footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Picker styles ─────────────────────────────────────────────────────────── */
+.pickRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+  text-align: left;
+}
+.pickRow:last-child { border-bottom: none; }
+.pickRow:hover { background: var(--bg-surface); }
+
+.pickGraveLabel {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  min-width: 36px;
+  flex-shrink: 0;
+}
+
+.pickInfo { flex: 1; min-width: 0; }
+
+.pickName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pickYears {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+.cremainsBadge {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(0,212,200,0.1);
+  border: 1px solid rgba(0,212,200,0.2);
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.pickArrow {
+  font-size: 18px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}

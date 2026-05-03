@@ -1,0 +1,230 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-deep);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  background: var(--bg-mid);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  background: var(--bg-mid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+
+.cardTitle {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--accent);
+  margin-bottom: 8px;
+  font-weight: 400;
+}
+
+.cardDesc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: 14px;
+}
+.cardDesc code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin: 0 2px;
+}
+
+.dropZone {
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 22px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.dropZone:hover {
+  border-color: var(--accent-dim);
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+}
+
+.alert {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+}
+.alertOk  { background: #142218; border: 1px solid #3d6b4f; color: #7ab894; }
+.alertErr { background: #2a1010; border: 1px solid #6b3030; color: #d47a7a; }
+
+.colGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.colRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--bg-surface);
+}
+
+/* ── File slot grid ──────────────────────────────────────────────────────────── */
+.fileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.fileSlot {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  transition: border-color 0.15s;
+}
+.fileSlotDone {
+  border-color: var(--accent-dim);
+}
+
+.fileSlotTop {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 4px;
+}
+.fileSlotCheck {
+  font-size: 13px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+.fileSlotLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.fileSlotHint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fileSlotBtn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+}
+.fileSlotBtn:hover {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+}
+
+.missingNote {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 12px;
+  font-style: italic;
+}
+
+/* ── Preview stats ───────────────────────────────────────────────────────────── */
+.statGrid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.statBox {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  min-width: 90px;
+  text-align: center;
+}
+.statBoxVal {
+  font-size: 22px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+.statBoxLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.cemBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cemRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cemRowName {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 90px;
+}
+.cemRowSec {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+.cemRowSec strong {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}

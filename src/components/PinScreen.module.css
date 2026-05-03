@@ -1,0 +1,128 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 320px;
+  max-width: 90vw;
+}
+
+.symbol {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 16px var(--accent);
+  margin-bottom: 20px;
+}
+
+.title {
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+/* ── PIN dots ───────────────────────────────────────────────────────────────── */
+.dots {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border-light);
+  background: transparent;
+  transition: all 0.15s;
+}
+
+.dotFilled {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(0,212,200,0.4);
+}
+
+.dotError {
+  border-color: #f87171;
+  background: #f87171;
+  box-shadow: 0 0 8px rgba(248,113,113,0.4);
+}
+
+.error {
+  font-size: 12px;
+  color: #f87171;
+  height: 16px;
+  margin-bottom: 24px;
+  font-family: var(--font-mono);
+}
+
+/* ── Keypad ─────────────────────────────────────────────────────────────────── */
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.key {
+  height: 64px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-size: 22px;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.key:hover { background: var(--bg-raised); }
+.key:active { background: var(--bg-hover); transform: scale(0.96); }
+
+.keyEmpty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ── Shake animation ────────────────────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-8px); }
+  40%       { transform: translateX(8px); }
+  60%       { transform: translateX(-6px); }
+  80%       { transform: translateX(6px); }
+}
+
+.shake { animation: shake 0.45s ease-in-out; }
