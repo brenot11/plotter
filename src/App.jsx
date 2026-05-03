@@ -21,6 +21,23 @@ export default function App() {
   const [activeCem,     setActiveCem]     = useState(CEMETERIES[0])
   const [activeSection, setActiveSection] = useState(SECTIONS[CEMETERIES[0]][0])
 
+  // Per-section flip preferences — stored in localStorage (tiny, fine)
+  const [flippedSections, setFlippedSections] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('plotter_flipped') ?? '{}') }
+    catch { return {} }
+  })
+
+  const flipKey      = `${activeCem}|${activeSection}`
+  const isFlipped    = !!flippedSections[flipKey]
+
+  const toggleFlip = () => {
+    setFlippedSections(prev => {
+      const next = { ...prev, [flipKey]: !prev[flipKey] }
+      localStorage.setItem('plotter_flipped', JSON.stringify(next))
+      return next
+    })
+  }
+
   // Load data async from IndexedDB on mount
   useEffect(() => {
     loadData()
@@ -400,11 +417,18 @@ export default function App() {
           <Stat value={stats.occupied}  label="occupied"  color="#93c5fd" />
           <Stat value={stats.reserved}  label="rsv/sold"  color="#fcd34d" />
         </div>
+        <button
+          className={`btn btn-ghost ${styles.flipBtn} ${isFlipped ? styles.flipBtnActive : ''}`}
+          onClick={toggleFlip}
+          title="Flip grave number order left-to-right"
+        >
+          ⇄
+        </button>
       </div>
 
       {/* ── Map ─────────────────────────────────────────────────── */}
       <main className={styles.main}>
-        <MapCanvas plots={filteredPlots} onPlotClick={setSelectedPlot} changeLog={changeLog} />
+        <MapCanvas plots={filteredPlots} onPlotClick={setSelectedPlot} changeLog={changeLog} flipped={isFlipped} />
 
         <div className={styles.legend}>
           {Object.entries(STATUS_META).map(([s, m]) => (

@@ -9,7 +9,7 @@ const GAP_Y  = 3
 const LOT_LABEL_W  = 38
 const GRAVE_LABEL_H = 22
 
-export default function MapCanvas({ plots, onPlotClick, changeLog = [] }) {
+export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped = false }) {
   const canvasRef = useRef(null)
   const state = useRef({ offsetX: 0, offsetY: 0, scale: 1, dragging: false, lastX: 0, lastY: 0, moved: false })
   const plotsRef   = useRef(plots)
@@ -78,9 +78,8 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [] }) {
     ctx.font = `${Math.max(8, 9 * scale)}px 'JetBrains Mono', monospace`
     ctx.fillStyle = '#374151'
     ctx.textAlign = 'center'
-    const isCrawfordSouthHdr = plotsRef.current[0]?.section === 'Crawford South'
     for (let g = 5; g <= maxGrave; g += 5) {
-      const displayCol = isCrawfordSouthHdr ? (maxGrave - g) : (g - 1)
+      const displayCol = flipped ? (maxGrave - g) : (g - 1)
       const x = startX + displayCol * (pw + gx) + pw / 2
       if (x < 0 || x > W) continue
       ctx.fillText(String(g), x, offsetY + glh - 5 * scale)
@@ -93,22 +92,19 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [] }) {
 
     const plotMap = getPlotMap()
 
-    // Crawford South physically runs high-to-low grave numbers left-to-right,
-    // so we mirror the x-axis when rendering that section.
-    const isCrawfordSouth = plotsRef.current[0]?.section === 'Crawford South'
-
     for (let lot = 1; lot <= maxLot; lot++) {
       const y = startY + (lot - 1) * (ph + gy)
       if (y + ph < 0 || y > H) continue
 
-      ctx.fillStyle = '#374151'
+      // Lot label — brighter and larger
+      const lotFontSize = Math.max(9, 11 * scale)
+      ctx.fillStyle = '#9ca3af'
       ctx.textAlign = 'right'
-      ctx.font = `${Math.max(7, 9 * scale)}px 'JetBrains Mono', monospace`
+      ctx.font = `500 ${lotFontSize}px 'JetBrains Mono', monospace`
       ctx.fillText(String(lot), offsetX + llw - 5 * scale, y + ph * 0.67)
 
       for (let grave = 1; grave <= maxGrave; grave++) {
-        // For Crawford South, flip: grave 1 appears on the right, maxGrave on the left
-        const displayCol = isCrawfordSouth ? (maxGrave - grave) : (grave - 1)
+        const displayCol = flipped ? (maxGrave - grave) : (grave - 1)
         const x = startX + displayCol * (pw + gx)
         if (x + pw < 0 || x > W) continue
 
@@ -151,6 +147,21 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [] }) {
         ctx.font = `${numFontSize}px 'JetBrains Mono', monospace`
         ctx.textAlign = 'center'
         ctx.fillText(graveLabel, x + pw / 2, y + numFontSize + 2 * scale)
+
+        // Lot number — rotated vertically in center of plot, only when zoomed in
+        if (scale > 1.2) {
+          const lotNumSize = Math.max(5, Math.min(ph * 0.45, 9 * scale))
+          ctx.save()
+          ctx.translate(x + pw / 2, y + ph / 2)
+          ctx.rotate(-Math.PI / 2)
+          ctx.fillStyle = 'rgba(255,255,255,0.09)'
+          ctx.font = `${lotNumSize}px 'JetBrains Mono', monospace`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(String(lot), 0, 0)
+          ctx.restore()
+          ctx.textBaseline = 'alphabetic'
+        }
 
         // Multi-internment badge — cyan dot bottom-left
         // If this plot has multiple internments, show a red dot for edited ones
@@ -222,7 +233,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [] }) {
     ctx.fillStyle = 'rgba(0, 212, 200, 0.04)'
     ctx.textAlign = 'center'
     ctx.fillText(secName.toUpperCase(), W / 2, H - 14)
-  }, [getLayoutInfo, getPlotMap])
+  }, [getLayoutInfo, getPlotMap, flipped])
 
   // ── Resize observer ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -244,7 +255,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [] }) {
     return () => ro.disconnect()
   }, [draw, getLayoutInfo])
 
-  useEffect(() => { draw() }, [draw, plots])
+  useEffect(() => { draw() }, [draw, plots, flipped])
 
   // ── Hit-test ───────────────────────────────────────────────────────────────
   const getPlotAt = useCallback((cx, cy) => {

@@ -195,6 +195,21 @@
   white-space: nowrap;
 }
 
+.flipBtn {
+  font-size: 16px;
+  padding: 4px 10px;
+  flex-shrink: 0;
+  margin-left: 8px;
+  color: var(--text-muted);
+  border-color: transparent;
+}
+.flipBtn:hover { color: var(--text-primary); }
+.flipBtnActive {
+  color: var(--accent) !important;
+  border-color: var(--accent-dim) !important;
+  background: rgba(0,212,200,0.08) !important;
+}
+
 .changelogBtn {
   position: relative;
 }
