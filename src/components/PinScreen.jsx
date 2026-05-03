@@ -4,7 +4,7 @@ import styles from './PinScreen.module.css'
 // PIN is stored as a hash so it's not plaintext in the source.
 // Default PIN: 6902 (change by updating CORRECT_HASH below)
 // To generate a new hash: btoa('your-pin') in browser console
-const CORRECT_HASH = import.meta.env.VITE_PIN_HASH ?? 'MTk1NQ=='
+const CORRECT_HASH = import.meta.env.VITE_PIN_HASH
 const SESSION_KEY  = 'plotter_auth_v1'
 
 export function checkAuth() {
