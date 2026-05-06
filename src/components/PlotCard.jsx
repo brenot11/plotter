@@ -20,7 +20,8 @@ export default function PlotCard({ plot, onClose, onViewFull, pendingIntIds = ne
   // ── Picker view — shown when multiple internments ──────────────────────────
   if (picking) {
     return (
-      <div className={styles.overlay} onPointerDown={e => e.target === e.currentTarget && onClose()}>
+      <div className={styles.overlay}
+        onPointerDown={e => { e.stopPropagation(); if (e.target === e.currentTarget) onClose() }}>
         <div className={styles.card}>
           <div className={styles.header}>
             <div className={styles.headerLeft}>
@@ -98,7 +99,8 @@ export default function PlotCard({ plot, onClose, onViewFull, pendingIntIds = ne
   const years  = (birthY && deathY) ? `${birthY} – ${deathY}` : null
 
   return (
-    <div className={styles.overlay} onPointerDown={e => e.target === e.currentTarget && onClose()}>
+    <div className={styles.overlay}
+      onPointerDown={e => { e.stopPropagation(); if (e.target === e.currentTarget) onClose() }}>
       <div className={styles.card}>
 
         <div className={styles.header}>

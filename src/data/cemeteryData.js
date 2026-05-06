@@ -16,24 +16,21 @@ export const CEMETERY_CONFIG = {
   'Maple Grove': { rows: 13, cols: 62 },
 }
 
-export const STATUSES = ['occupied', 'available', 'reserved', 'sold', 'unavailable']
+export const STATUSES = ['occupied', 'available', 'sold', 'unavailable']
 
 export const STATUS_META = {
   occupied:    { label: 'Occupied',    color: '#3b82f6', bg: '#0d1a35', text: '#93c5fd' },
   available:   { label: 'Available',   color: '#10b981', bg: '#042b1e', text: '#6ee7b7' },
-  reserved:    { label: 'Reserved',    color: '#f59e0b', bg: '#2d1f06', text: '#fcd34d' },
   sold:        { label: 'Sold',        color: '#8b5cf6', bg: '#1a0d35', text: '#c4b5fd' },
   unavailable: { label: 'Unavailable', color: '#374151', bg: '#111318', text: '#4b5563' },
 }
 
 // MAP_PLOT: canvas-specific colors — dark and restrained, easy on the eyes.
-// STATUS_META colors above are only used for UI badges/text, not the map.
 export const MAP_PLOT = {
-  occupied:    { fill: '#1a2133', stroke: '#2e4872', strokeWidth: 1.5 }, // dark blue, blue outline
-  available:   { fill: '#0d2118', stroke: '#1a5c35', strokeWidth: 1.2 }, // visible dark green + outline
-  reserved:    { fill: '#1c1808', stroke: '#4a3a10', strokeWidth: 1   }, // dark amber tint
-  sold:        { fill: '#1e1428', stroke: '#4a2d7a', strokeWidth: 1.2 }, // dark purple, purple outline
-  unavailable: { fill: '#0e0f12', stroke: null,      strokeWidth: 0   }, // near-black, no outline
+  occupied:    { fill: '#1a2133', stroke: '#2e4872', strokeWidth: 1.5 },
+  available:   { fill: '#0d2118', stroke: '#1a5c35', strokeWidth: 1.2 },
+  sold:        { fill: '#1e1428', stroke: '#4a2d7a', strokeWidth: 1.2 },
+  unavailable: { fill: '#0e0f12', stroke: null,      strokeWidth: 0   },
 }
 
 export const LOT_TYPES        = ['Standard 4x8', 'Infant 3x3', 'Double 4x10', 'Veterans 4x8', 'Cremains 2x2']
@@ -46,10 +43,39 @@ export const BURIAL_POSITIONS = ['Head West', 'Head East', 'Standard']
 
 // ── Status derivation ────────────────────────────────────────────────────────
 // statusOverride = null means auto-derive from data.
+//
+// Occupied  — any internment has interredDate OR deathDate present
+// Sold      — internment has a name but neither interredDate nor deathDate,
+//             AND purchase year >= 1970 (older records treated as occupied
+//             since missing dates are unreliable, not meaningful)
+// Available — no internments and no purchaser
+// Unavailable — statusOverride only
+
+function isPurchaseModern(plot) {
+  // Use purchase date year to determine if "modern" (>= 1970)
+  if (!plot.purchaseDate) return false
+  const year = parseInt(plot.purchaseDate.split('/')[2])
+  return !isNaN(year) && year >= 1970
+}
 
 export function derivePlotStatus(plot) {
   if (plot.statusOverride) return plot.statusOverride
-  if (plot.internments && plot.internments.length > 0) return 'occupied'
+
+  if (plot.internments && plot.internments.length > 0) {
+    // Check each internment — if any has interredDate OR deathDate, it's occupied
+    const hasConfirmedBurial = plot.internments.some(i =>
+      (i.interredDate && i.interredDate.trim()) ||
+      (i.deathDate    && i.deathDate.trim())
+    )
+    if (hasConfirmedBurial) return 'occupied'
+
+    // All internments have names but no dates — sold if modern purchase
+    if (isPurchaseModern(plot)) return 'sold'
+
+    // Old record with missing dates — treat as occupied
+    return 'occupied'
+  }
+
   if (plot.purchaserLastName || plot.purchaserFirstName) return 'sold'
   return 'available'
 }

@@ -9,13 +9,17 @@ const GAP_Y  = 3
 const LOT_LABEL_W  = 38
 const GRAVE_LABEL_H = 22
 
-export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped = false }) {
+export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped = false, flippedRows = false, activePlotId = null, cardOpen = false }) {
   const canvasRef = useRef(null)
   const state = useRef({ offsetX: 0, offsetY: 0, scale: 1, dragging: false, lastX: 0, lastY: 0, moved: false })
-  const plotsRef   = useRef(plots)
-  const changeRef  = useRef(changeLog)
-  plotsRef.current  = plots
-  changeRef.current = changeLog
+  const plotsRef    = useRef(plots)
+  const changeRef   = useRef(changeLog)
+  const activeIdRef = useRef(activePlotId)
+  const cardOpenRef = useRef(cardOpen)
+  plotsRef.current    = plots
+  changeRef.current   = changeLog
+  activeIdRef.current = activePlotId
+  cardOpenRef.current = cardOpen
 
   // Pre-compute set of plotIds with pending changes for fast lookup
   const pendingPlotIds = useRef(new Set())
@@ -93,7 +97,8 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     const plotMap = getPlotMap()
 
     for (let lot = 1; lot <= maxLot; lot++) {
-      const y = startY + (lot - 1) * (ph + gy)
+      const displayRow = flippedRows ? (maxLot - lot) : (lot - 1)
+      const y = startY + displayRow * (ph + gy)
       if (y + ph < 0 || y > H) continue
 
       // Lot label — brighter and larger
@@ -204,7 +209,15 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
           )
         }
 
-        // Veteran star — right edge, upper quarter (below plot number)
+        // Active plot highlight — white outline, drawn on top of everything
+        if (plot?.id === activeIdRef.current) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)'
+          ctx.lineWidth   = 2 * scale
+          ctx.beginPath()
+          if (ctx.roundRect) ctx.roundRect(x, y, pw, ph, r)
+          else               ctx.rect(x, y, pw, ph)
+          ctx.stroke()
+        }
         const hasVet = plot?.internments?.some(i => i.veteran)
         if (hasVet && scale > 0.6) {
           const cx = x + pw
@@ -233,7 +246,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     ctx.fillStyle = 'rgba(0, 212, 200, 0.04)'
     ctx.textAlign = 'center'
     ctx.fillText(secName.toUpperCase(), W / 2, H - 14)
-  }, [getLayoutInfo, getPlotMap, flipped])
+  }, [getLayoutInfo, getPlotMap, flipped, flippedRows])
 
   // ── Resize observer ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -255,7 +268,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     return () => ro.disconnect()
   }, [draw, getLayoutInfo])
 
-  useEffect(() => { draw() }, [draw, plots, flipped])
+  useEffect(() => { draw() }, [draw, plots, flipped, flippedRows, activePlotId])
 
   // ── Hit-test ───────────────────────────────────────────────────────────────
   const getPlotAt = useCallback((cx, cy) => {
@@ -267,20 +280,29 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     const rx  = cx - (offsetX + llw)
     const ry  = cy - (offsetY + glh)
     if (rx < 0 || ry < 0) return null
-    const grave = Math.floor(rx / (pw + gx)) + 1
-    const lot   = Math.floor(ry / (ph + gy)) + 1
+
     // Reject clicks in the gap
     if ((rx % (pw + gx)) / (pw + gx) > pw / (pw + gx)) return null
     if ((ry % (ph + gy)) / (ph + gy) > ph / (ph + gy)) return null
+
+    const { maxLot, maxGrave } = getLayoutInfo()
+    const colIdx = Math.floor(rx / (pw + gx))
+    const rowIdx = Math.floor(ry / (ph + gy))
+
+    // Convert display position back to data lot/grave accounting for flips
+    const grave = flipped ? (maxGrave - colIdx) : (colIdx + 1)
+    const lot   = flippedRows ? (maxLot - rowIdx) : (rowIdx + 1)
+
     return plotsRef.current.find(p => p.lot === lot && p.grave === grave) ?? null
-  }, [])
+  }, [getLayoutInfo, flipped, flippedRows])
 
   // ── Mouse events ───────────────────────────────────────────────────────────
   const onMouseDown  = useCallback((e) => {
-    state.current.dragging = true
-    state.current.lastX    = e.clientX
-    state.current.lastY    = e.clientY
-    state.current.moved    = false
+    state.current.dragging      = true
+    state.current.lastX         = e.clientX
+    state.current.lastY         = e.clientY
+    state.current.moved         = false
+    state.current.cardWasOpen   = cardOpenRef.current  // snapshot at tap start
   }, [])
 
   const onMouseMove  = useCallback((e) => {
@@ -297,9 +319,14 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
 
   const onMouseUp = useCallback((e) => {
     if (!state.current.moved) {
+      if (state.current.cardWasOpen) {
+        state.current.dragging = false
+        state.current.moved    = false
+        return
+      }
       const rect  = canvasRef.current.getBoundingClientRect()
       const plot  = getPlotAt(e.clientX - rect.left, e.clientY - rect.top)
-      if (plot) onPlotClick(plot)
+      onPlotClick(plot)
     }
     state.current.dragging = false
     state.current.moved    = false
@@ -325,21 +352,19 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
 
   const onTouchStart = useCallback((e) => {
     if (e.touches.length === 1) {
-      // Only reset pinch flag if this is a fresh single-finger gesture
-      // (not the tail of a pinch where one finger lifted)
       if (!touch.current.wasPinching) {
-        state.current.dragging = true
-        state.current.lastX    = e.touches[0].clientX
-        state.current.lastY    = e.touches[0].clientY
-        state.current.moved    = false
+        state.current.dragging    = true
+        state.current.lastX       = e.touches[0].clientX
+        state.current.lastY       = e.touches[0].clientY
+        state.current.moved       = false
+        state.current.cardWasOpen = cardOpenRef.current  // snapshot at tap start
       }
     }
     if (e.touches.length === 2) {
-      // Second finger down — mark as pinching, cancel any pending tap
       touch.current.wasPinching  = true
       touch.current.lastDist     = null
       state.current.dragging     = false
-      state.current.moved        = true  // prevent tap
+      state.current.moved        = true
     }
   }, [])
 
@@ -394,12 +419,17 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     if (touch.current.wasPinching) return
 
     if (!state.current.moved && e.changedTouches.length === 1) {
+      if (state.current.cardWasOpen) {
+        state.current.dragging = false
+        state.current.moved    = false
+        return
+      }
       const rect = canvasRef.current.getBoundingClientRect()
       const plot = getPlotAt(
         e.changedTouches[0].clientX - rect.left,
         e.changedTouches[0].clientY - rect.top
       )
-      if (plot) onPlotClick(plot)
+      onPlotClick(plot)
     }
     state.current.dragging = false
     state.current.moved    = false
@@ -439,7 +469,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
   }, [draw, getLayoutInfo])
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{ pointerEvents: cardOpen ? 'none' : 'auto' }}>
       <canvas
         ref={canvasRef}
         className={styles.canvas}

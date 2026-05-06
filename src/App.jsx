@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { CEMETERIES, SECTIONS, STATUS_META, derivePlotStatus, loadData, saveData, generateAllData } from './data/cemeteryData'
 import { REAL_CEMETERIES, REAL_SECTIONS } from './utils/tckImport'
 import { loadChangeLog, saveChangeLog, upsertChangeLogEntry, commitChangeLogEntry, revertChangeLogEntry, removeChangeLogEntry, clearCommittedEntries } from './utils/changeLog'
@@ -15,6 +15,8 @@ export default function App() {
   const [changeLog,     setChangeLog]     = useState(() => clearCommittedEntries(loadChangeLog()))
   const [search,        setSearch]        = useState('')
   const [selectedPlot,  setSelectedPlot]  = useState(null)
+  const [activePlotId,  setActivePlotId]  = useState(null)
+  const suppressNextClick = useRef(false)
   const [detailTarget,  setDetailTarget]  = useState(null)
   const [showImport,    setShowImport]    = useState(false)
   const [showChangeLog, setShowChangeLog] = useState(false)
@@ -26,14 +28,27 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem('plotter_flipped') ?? '{}') }
     catch { return {} }
   })
+  const [flippedRows, setFlippedRows] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('plotter_flipped_rows') ?? '{}') }
+    catch { return {} }
+  })
 
   const flipKey      = `${activeCem}|${activeSection}`
   const isFlipped    = !!flippedSections[flipKey]
+  const isFlippedRows = !!flippedRows[flipKey]
 
   const toggleFlip = () => {
     setFlippedSections(prev => {
       const next = { ...prev, [flipKey]: !prev[flipKey] }
       localStorage.setItem('plotter_flipped', JSON.stringify(next))
+      return next
+    })
+  }
+
+  const toggleFlipRows = () => {
+    setFlippedRows(prev => {
+      const next = { ...prev, [flipKey]: !prev[flipKey] }
+      localStorage.setItem('plotter_flipped_rows', JSON.stringify(next))
       return next
     })
   }
@@ -76,16 +91,39 @@ export default function App() {
     })
   }, [currentPlots, search])
 
-  const stats = useMemo(() => {
+  const [cemStatsMode, setCemStatsMode] = useState(false)
+
+  const sectionStats = useMemo(() => {
     const statuses = currentPlots.map(p => derivePlotStatus(p))
     return {
       total:     currentPlots.length,
       available: statuses.filter(s => s === 'available').length,
       occupied:  statuses.filter(s => s === 'occupied').length,
-      reserved:  statuses.filter(s => s === 'reserved' || s === 'sold').length,
+      sold:      statuses.filter(s => s === 'sold').length,
     }
   }, [currentPlots])
 
+  const cemStats = useMemo(() => {
+    if (!allData || !hasTCKData) return null
+    const secs = activeSections[activeCem] ?? []
+    let total = 0, available = 0, occupied = 0, sold = 0, veterans = 0
+    for (const sec of secs) {
+      const plots = allData[activeCem]?.[sec] ?? []
+      for (const plot of plots) {
+        total++
+        const status = derivePlotStatus(plot)
+        if (status === 'available') available++
+        else if (status === 'occupied') occupied++
+        else if (status === 'sold') sold++
+        for (const int of plot.internments) {
+          if (int.veteran) veterans++
+        }
+      }
+    }
+    return { total, available, occupied, sold, veterans }
+  }, [allData, activeCem, activeSections, hasTCKData])
+
+  const stats = cemStatsMode && cemStats ? cemStats : sectionStats
   const pendingCount = changeLog.filter(e => !e.committed).length
 
   const handleSavePlot = (updatedPlot, changeInfo) => {
@@ -350,6 +388,7 @@ export default function App() {
     setActiveCem(cem)
     setActiveSection(activeSections[cem][0])
     setSelectedPlot(null)
+    setActivePlotId(null)
   }
 
   // Loading screen — shown briefly while IndexedDB reads on startup
@@ -403,20 +442,31 @@ export default function App() {
 
       {/* ── Section bar ─────────────────────────────────────────── */}
       <div className={styles.sectionBar}>
-        <span className={styles.sectionLabel}>Section</span>
+        <span className={styles.sectionLabel}>{cemStatsMode ? 'Cemetery' : 'Section'}</span>
         {(activeSections[activeCem] ?? []).map(s => (
           <button key={s}
-            className={`${styles.secBtn} ${activeSection === s ? styles.secBtnActive : ''}`}
-            onClick={() => { setActiveSection(s); setSelectedPlot(null) }}>
+            className={`${styles.secBtn} ${activeSection === s ? styles.secBtnActive : ''} ${cemStatsMode ? styles.secBtnDim : ''}`}
+            onClick={() => { setActiveSection(s); setSelectedPlot(null); setActivePlotId(null) }}>
             {s}
           </button>
         ))}
         <div className={styles.statsRow}>
           <Stat value={stats.total}     label="total" />
-          <Stat value={stats.available} label="available" color="#6ee7b7" />
+          <Stat value={stats.available} label="avail"    color="#6ee7b7" />
           <Stat value={stats.occupied}  label="occupied"  color="#93c5fd" />
-          <Stat value={stats.reserved}  label="rsv/sold"  color="#fcd34d" />
+          <Stat value={stats.sold}      label="sold"      color="#c4b5fd" />
+          {cemStatsMode && cemStats && (
+            <Stat value={cemStats.veterans} label="veterans" color="#fcd34d" />
+          )}
         </div>
+        <button
+          className={`btn btn-ghost ${styles.flipBtn} ${cemStatsMode ? styles.flipBtnActive : ''}`}
+          onClick={() => setCemStatsMode(m => !m)}
+          title="Toggle cemetery-wide stats"
+          style={{ fontSize: 11, letterSpacing: '0.04em' }}
+        >
+          CEM
+        </button>
         <button
           className={`btn btn-ghost ${styles.flipBtn} ${isFlipped ? styles.flipBtnActive : ''}`}
           onClick={toggleFlip}
@@ -424,11 +474,38 @@ export default function App() {
         >
           ⇄
         </button>
+        <button
+          className={`btn btn-ghost ${styles.flipBtn} ${isFlippedRows ? styles.flipBtnActive : ''}`}
+          onClick={toggleFlipRows}
+          title="Flip row order top-to-bottom"
+        >
+          ⇅
+        </button>
       </div>
 
       {/* ── Map ─────────────────────────────────────────────────── */}
       <main className={styles.main}>
-        <MapCanvas plots={filteredPlots} onPlotClick={setSelectedPlot} changeLog={changeLog} flipped={isFlipped} />
+        <MapCanvas
+          plots={filteredPlots}
+          onPlotClick={plot => {
+            if (suppressNextClick.current) {
+              suppressNextClick.current = false
+              return
+            }
+            if (plot) {
+              setSelectedPlot(plot)
+              setActivePlotId(plot.id)
+            } else {
+              setSelectedPlot(null)
+              setActivePlotId(null)
+            }
+          }}
+          changeLog={changeLog}
+          flipped={isFlipped}
+          flippedRows={isFlippedRows}
+          activePlotId={activePlotId}
+          cardOpen={!!selectedPlot}
+        />
 
         <div className={styles.legend}>
           {Object.entries(STATUS_META).map(([s, m]) => (
@@ -450,7 +527,7 @@ export default function App() {
         {selectedPlot && !detailTarget && (
           <PlotCard
             plot={selectedPlot}
-            onClose={() => setSelectedPlot(null)}
+            onClose={() => { suppressNextClick.current = true; setSelectedPlot(null) }}
             onViewFull={target => { setDetailTarget(target); setSelectedPlot(null) }}
             pendingIntIds={new Set(changeLog.filter(e => !e.committed && e.internmentId).map(e => e.internmentId))}
           />
