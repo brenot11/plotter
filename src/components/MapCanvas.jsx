@@ -115,7 +115,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
 
         const plot   = plotMap[`${lot}_${grave}`]
         const status = plot ? derivePlotStatus(plot) : null
-        const mp     = MAP_PLOT[status ?? 'unavailable']
+        const mp     = MAP_PLOT[status ?? 'unavailable'] ?? MAP_PLOT.unavailable
         const r      = Math.max(1, 2 * scale)
 
         // Check for pending changes on this plot

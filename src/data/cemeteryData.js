@@ -59,6 +59,8 @@ function isPurchaseModern(plot) {
 }
 
 export function derivePlotStatus(plot) {
+  // Handle legacy 'reserved' statusOverride — map to 'sold'
+  if (plot.statusOverride === 'reserved') return 'sold'
   if (plot.statusOverride) return plot.statusOverride
 
   if (plot.internments && plot.internments.length > 0) {
