@@ -202,10 +202,6 @@ function PlotInfoSection({ plot, editing, onEdit, onSave, onCancel, derivedStatu
               : <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Auto ({derivedStatus})</span>
           }
         </F>
-        <F label="Marker Type">
-          {editing ? <Sel value={draft.markerType} options={MARKER_TYPES} onChange={v => set('markerType', v)} allowEmpty />
-            : <span style={fv('markerType')}>{draft.markerType || <Em />}</span>}
-        </F>
         <F label="Purchase Price">
           {editing ? <In value={draft.purchasePrice} onChange={v => set('purchasePrice', v)} />
             : <span style={fv('purchasePrice')}>{draft.purchasePrice || <Em />}</span>}
