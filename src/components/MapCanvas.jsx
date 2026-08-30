@@ -37,16 +37,29 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
   // ── Build lookup map ───────────────────────────────────────────────────────
   const getPlotMap = useCallback(() => {
     const m = {}
-    for (const p of plotsRef.current) m[`${p.lot}_${p.grave}`] = p
+    for (const p of plotsRef.current) {
+      const i = p.lotIndex ?? (parseInt(p.lot, 10) || 1) - 1
+      m[`${i}_${p.grave}`] = p
+    }
     return m
   }, [])
 
+  // Rows are addressed by lotIndex, not by lot number, because lot labels are
+  // not always numeric ('7W', 'T3'). rowLabels maps a row back to its label
+  // for the gutter. Older data without lotIndex falls back to the numeric lot.
   const getLayoutInfo = useCallback(() => {
     const ps = plotsRef.current
-    if (!ps || ps.length === 0) return { maxLot: 0, maxGrave: 0 }
+    if (!ps || ps.length === 0) return { rowCount: 0, maxGrave: 0, rowLabels: [] }
+
+    const labels = []
+    for (const p of ps) {
+      const i = p.lotIndex ?? (parseInt(p.lot, 10) || 1) - 1
+      if (labels[i] === undefined) labels[i] = String(p.lot)
+    }
     return {
-      maxLot:   Math.max(...ps.map(p => p.lot)),
-      maxGrave: Math.max(...ps.map(p => p.grave)),
+      rowCount:  labels.length,
+      maxGrave:  Math.max(...ps.map(p => p.grave)),
+      rowLabels: labels,
     }
   }, [])
 
@@ -65,7 +78,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     const ps = plotsRef.current
     if (!ps || ps.length === 0) return
 
-    const { maxLot, maxGrave } = getLayoutInfo()
+    const { rowCount, maxGrave, rowLabels } = getLayoutInfo()
     const pw  = PLOT_W  * scale
     const ph  = PLOT_H  * scale
     const gx  = GAP_X   * scale
@@ -75,11 +88,11 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     const startX = offsetX + llw
     const startY = offsetY + glh
 
-    // Grid background tint for alternate lots
-    for (let lot = 1; lot <= maxLot; lot++) {
-      const y = startY + (lot - 1) * (ph + gy)
+    // Grid background tint for alternate rows
+    for (let row = 0; row < rowCount; row++) {
+      const y = startY + row * (ph + gy)
       if (y + ph < 0 || y > H) continue
-      if (lot % 2 === 0) {
+      if (row % 2 === 1) {
         ctx.fillStyle = C.altRowTint
         ctx.fillRect(offsetX, y - gy / 2, W - offsetX, ph + gy)
       }
@@ -103,24 +116,26 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
 
     const plotMap = getPlotMap()
 
-    for (let lot = 1; lot <= maxLot; lot++) {
-      const displayRow = flippedRows ? (maxLot - lot) : (lot - 1)
+    for (let row = 0; row < rowCount; row++) {
+      const displayRow = flippedRows ? (rowCount - 1 - row) : row
       const y = startY + displayRow * (ph + gy)
       if (y + ph < 0 || y > H) continue
+
+      const lotLabel = rowLabels[row] ?? ''
 
       // Lot label — brighter and larger
       const lotFontSize = Math.max(9, 11 * scale)
       ctx.fillStyle = C.lotLabel
       ctx.textAlign = 'right'
       ctx.font = `500 ${lotFontSize}px 'JetBrains Mono', monospace`
-      ctx.fillText(String(lot), offsetX + llw - 5 * scale, y + ph * 0.67)
+      ctx.fillText(lotLabel, offsetX + llw - 5 * scale, y + ph * 0.67)
 
       for (let grave = 1; grave <= maxGrave; grave++) {
         const displayCol = flipped ? (maxGrave - grave) : (grave - 1)
         const x = startX + displayCol * (pw + gx)
         if (x + pw < 0 || x > W) continue
 
-        const plot   = plotMap[`${lot}_${grave}`]
+        const plot   = plotMap[`${row}_${grave}`]
         const status = plot ? derivePlotStatus(plot) : null
         const mp     = MP[status ?? 'unavailable'] ?? MP.unavailable
         const r      = Math.max(1, 2 * scale)
@@ -178,7 +193,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
           ctx.font = `${lotNumSize}px 'JetBrains Mono', monospace`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
-          ctx.fillText(String(lot), 0, 0)
+          ctx.fillText(lotLabel, 0, 0)
           ctx.restore()
           ctx.textBaseline = 'alphabetic'
         }
@@ -285,9 +300,9 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     const center = () => {
       canvas.width  = parent.clientWidth
       canvas.height = parent.clientHeight
-      const { maxLot, maxGrave } = getLayoutInfo()
+      const { rowCount, maxGrave } = getLayoutInfo()
       const totalW = LOT_LABEL_W + maxGrave * (PLOT_W + GAP_X)
-      const totalH = GRAVE_LABEL_H + maxLot * (PLOT_H + GAP_Y)
+      const totalH = GRAVE_LABEL_H + rowCount * (PLOT_H + GAP_Y)
       state.current.offsetX = (canvas.width  - totalW)  / 2
       state.current.offsetY = (canvas.height - totalH) / 2
       draw()
@@ -315,15 +330,19 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     if ((rx % (pw + gx)) / (pw + gx) > pw / (pw + gx)) return null
     if ((ry % (ph + gy)) / (ph + gy) > ph / (ph + gy)) return null
 
-    const { maxLot, maxGrave } = getLayoutInfo()
+    const { rowCount, maxGrave } = getLayoutInfo()
     const colIdx = Math.floor(rx / (pw + gx))
     const rowIdx = Math.floor(ry / (ph + gy))
 
-    // Convert display position back to data lot/grave accounting for flips
+    // Convert display position back to data coordinates, accounting for flips
     const grave = flipped ? (maxGrave - colIdx) : (colIdx + 1)
-    const lot   = flippedRows ? (maxLot - rowIdx) : (rowIdx + 1)
+    const row   = flippedRows ? (rowCount - 1 - rowIdx) : rowIdx
+    if (row < 0 || row >= rowCount) return null
 
-    return plotsRef.current.find(p => p.lot === lot && p.grave === grave) ?? null
+    return plotsRef.current.find(p => {
+      const i = p.lotIndex ?? (parseInt(p.lot, 10) || 1) - 1
+      return i === row && p.grave === grave
+    }) ?? null
   }, [getLayoutInfo, flipped, flippedRows])
 
   // ── Mouse events ───────────────────────────────────────────────────────────
@@ -490,9 +509,9 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
   const resetView = useCallback(() => {
     const canvas = canvasRef.current
     state.current.scale = 1
-    const { maxLot, maxGrave } = getLayoutInfo()
+    const { rowCount, maxGrave } = getLayoutInfo()
     const totalW = LOT_LABEL_W + maxGrave * (PLOT_W + GAP_X)
-    const totalH = GRAVE_LABEL_H + maxLot * (PLOT_H + GAP_Y)
+    const totalH = GRAVE_LABEL_H + rowCount * (PLOT_H + GAP_Y)
     state.current.offsetX = (canvas.width  - totalW) / 2
     state.current.offsetY = (canvas.height - totalH) / 2
     draw()

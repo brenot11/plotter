@@ -1,7 +1,35 @@
 import { useRef, useState } from 'react'
+import JSZip from 'jszip'
 import { exportToCSV } from '../utils/csvUtils'
 import { parseTCKBackup, getTCKImportStats, REAL_CEMETERIES, REAL_SECTIONS } from '../utils/tckImport'
 import styles from './ImportExportScreen.module.css'
+
+// Backup filenames carry a timestamp suffix (Records1320260830021955.txt),
+// so files are matched on prefix rather than exact name.
+const FILE_PREFIXES = {
+  records:    'records',
+  purchasers: 'purchasers',
+  cemetery:   'cemetery',
+  lots:       'lots',
+  maps:       'maps',
+}
+
+// 'Purchasers' also prefixes PurchasersActivity, PurchasersInvoices etc.
+// Longer, more specific names are tested first so they can be excluded.
+const EXCLUDE_PREFIXES = [
+  'purchasersactivity', 'purchasersinvoices',
+  'purchasersinvoicesdetails', 'purchasersterms',
+]
+
+function matchFileKey(filename) {
+  const base = filename.split('/').pop().toLowerCase()
+  if (!base.endsWith('.txt')) return null
+  if (EXCLUDE_PREFIXES.some(p => base.startsWith(p))) return null
+  for (const [key, prefix] of Object.entries(FILE_PREFIXES)) {
+    if (base.startsWith(prefix)) return key
+  }
+  return null
+}
 
 const REQUIRED_FILES = [
   { key: 'records',    label: 'Records',    hint: 'Records*.txt — main internment data' },
@@ -16,7 +44,63 @@ export default function ImportExportScreen({ onClose, allData, onImport }) {
   const [status,  setStatus]  = useState(null) // { type, msg }
   const [preview, setPreview] = useState(null) // stats before committing
   const [loading, setLoading] = useState(false)
+  const [zipInfo, setZipInfo] = useState(null)   // { name, found[], skipped }
+  const [dragOver, setDragOver] = useState(false)
+  const [showManual, setShowManual] = useState(false)
   const fileRefs = useRef({})
+  const zipRef   = useRef(null)
+
+  // ── Whole-backup zip ────────────────────────────────────────────────────
+  // Only the five .txt files are decompressed; any photos in the archive are
+  // listed but never read, so a photo-heavy backup costs nothing to import.
+  const handleZip = async (file) => {
+    if (!file) return
+    setLoading(true)
+    setStatus(null)
+    setPreview(null)
+    try {
+      const zip     = await JSZip.loadAsync(file)
+      const entries = Object.values(zip.files).filter(f => !f.dir)
+
+      const picked = {}
+      let skipped  = 0
+      for (const entry of entries) {
+        const key = matchFileKey(entry.name)
+        if (key && !picked[key]) picked[key] = entry
+        else skipped++
+      }
+
+      const missing = REQUIRED_FILES
+        .filter(f => f.key !== 'cemetery' && !picked[f.key])
+        .map(f => f.label)
+
+      if (missing.length > 0) {
+        setStatus({ type: 'err', msg:
+          `That archive is missing: ${missing.join(', ')}. ` +
+          `Make sure it's the full backup from The Crypt Keeper.` })
+        setLoading(false)
+        return
+      }
+
+      const loaded = {}
+      for (const [key, entry] of Object.entries(picked)) {
+        loaded[key] = { name: entry.name.split('/').pop(), content: await entry.async('string') }
+      }
+
+      setFiles(loaded)
+      setZipInfo({
+        name: file.name,
+        found: Object.entries(loaded).map(([k, v]) => v.name),
+        skipped,
+      })
+      setStatus({ type: 'ok', msg: 'Archive read. Checking the data…' })
+      setTimeout(() => runPreview(loaded), 0)
+    } catch (err) {
+      setStatus({ type: 'err', msg:
+        `Couldn't read that archive: ${err.message}. It should be the .zip downloaded from The Crypt Keeper.` })
+      setLoading(false)
+    }
+  }
 
   const handleFileSelect = (key, file) => {
     if (!file) return
@@ -33,25 +117,26 @@ export default function ImportExportScreen({ onClose, allData, onImport }) {
   const missingKeys = REQUIRED_FILES.filter(f => !files[f.key]).map(f => f.label)
   const allLoaded   = missingKeys.length === 0
 
-  const handlePreview = () => {
+  const runPreview = (src) => {
     setLoading(true)
-    setStatus(null)
     try {
       const result = parseTCKBackup({
-        records:    files.records.content,
-        purchasers: files.purchasers.content,
-        cemetery:   files.cemetery?.content || '',
-        lots:       files.lots.content,
-        maps:       files.maps?.content || '',
+        records:    src.records.content,
+        purchasers: src.purchasers.content,
+        cemetery:   src.cemetery?.content || '',
+        lots:       src.lots.content,
+        maps:       src.maps?.content || '',
       })
       const stats = getTCKImportStats(result.appData)
       setPreview({ result, stats })
-      setStatus({ type: 'ok', msg: `Parsed successfully. Review the summary below before importing.` })
+      setStatus({ type: 'ok', msg: 'Data read successfully. Review the report below before importing.' })
     } catch (err) {
       setStatus({ type: 'err', msg: `Parse error: ${err.message}` })
     }
     setLoading(false)
   }
+
+  const handlePreview = () => runPreview(files)
 
   const handleImport = () => {
     if (!preview) return
@@ -133,11 +218,60 @@ export default function ImportExportScreen({ onClose, allData, onImport }) {
             onChange={e => handleJSONImport(e.target.files[0])}
           />
         </div>
+        {/* ── Zip import — the normal path ──────────────────────── */}
         <div className={styles.card}>
-          <div className={styles.cardTitle}>Import from Crypt Keeper Backup</div>
+          <div className={styles.cardTitle}>Import from Crypt Keeper</div>
           <p className={styles.cardDesc}>
-            Select the tab-delimited text files from your TCK backup zip. You need all five files below.
-            The app will join them together and load all real cemetery data.
+            Download the full backup from The Crypt Keeper and load the .zip here.
+            Plotter pulls out the five data files it needs and ignores everything
+            else in the archive, including photos.
+          </p>
+
+          <div
+            className={`${styles.zipZone} ${dragOver ? styles.zipZoneOver : ''}`}
+            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={e => {
+              e.preventDefault(); setDragOver(false)
+              const f = e.dataTransfer.files?.[0]
+              if (f) handleZip(f)
+            }}
+          >
+            <button className="btn btn-primary" onClick={() => zipRef.current?.click()} disabled={loading}>
+              {loading ? 'Reading…' : 'Choose backup file'}
+            </button>
+            <div className={styles.zipHint}>or drag the .zip here</div>
+          </div>
+
+          <input ref={zipRef} type="file" accept=".zip,application/zip"
+            style={{ display: 'none' }} onChange={e => handleZip(e.target.files[0])} />
+
+          {zipInfo && (
+            <div className={styles.zipFound}>
+              <div className={styles.zipFoundName}>{zipInfo.name}</div>
+              <div className={styles.zipFoundList}>
+                Found: {zipInfo.found.join(', ')}
+                {zipInfo.skipped > 0 && (
+                  <span className={styles.zipSkipped}>
+                    {' '}· ignored {zipInfo.skipped} other file{zipInfo.skipped === 1 ? '' : 's'}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <button className={styles.manualToggle} onClick={() => setShowManual(v => !v)}>
+            {showManual ? 'Hide individual file picker' : 'Or choose the five files individually'}
+          </button>
+        </div>
+
+        {/* ── Manual per-file pickers — fallback ─────────────────── */}
+        {showManual && (
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>Choose files individually</div>
+          <p className={styles.cardDesc}>
+            Only needed if the .zip won't load. Pick each of the five .txt files
+            from the unpacked backup folder.
           </p>
 
           <div className={styles.fileGrid}>
@@ -179,6 +313,7 @@ export default function ImportExportScreen({ onClose, allData, onImport }) {
             <p className={styles.missingNote}>Still needed: {missingKeys.join(', ')}</p>
           )}
         </div>
+        )}
 
         {/* ── Preview / confirm ────────────────────────────────── */}
         {preview && (
@@ -209,6 +344,10 @@ export default function ImportExportScreen({ onClose, allData, onImport }) {
               ))}
             </div>
 
+            {preview.result.diag && (
+              <ImportReport diag={preview.result.diag} />
+            )}
+
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               <button className="btn btn-primary" onClick={handleImport}>
                 Import Now
@@ -230,6 +369,52 @@ export default function ImportExportScreen({ onClose, allData, onImport }) {
         </div>
 
       </div>
+    </div>
+  )
+}
+
+// Plain-language summary of what the import found, including anything odd.
+function ImportReport({ diag }) {
+  const c = diag.counts ?? {}
+  const warnings = diag.warnings ?? []
+  const problems = warnings.filter(w => w.level === 'warn')
+
+  return (
+    <div className={styles.report}>
+      <div className={styles.reportHead}>What this import will do</div>
+
+      <p className={styles.reportText}>
+        Read <strong>{(c.recordRows ?? 0).toLocaleString()}</strong> burial records and{' '}
+        <strong>{(c.mapRows ?? 0).toLocaleString()}</strong> map cells from The Crypt Keeper,
+        and built <strong>{(c.plots ?? 0).toLocaleString()}</strong> plots holding{' '}
+        <strong>{(c.internments ?? 0).toLocaleString()}</strong> internments, of which{' '}
+        <strong>{(c.available ?? 0).toLocaleString()}</strong> are still open.
+      </p>
+
+      <p className={styles.reportText}>
+        This replaces all record data. Marker photos, blackstone flags, notes and
+        unavailable marks are stored separately and will be kept. Anything still
+        pending in your Changes list stays there — but the fresh data becomes the
+        new baseline, so those edits will no longer show as changed.
+      </p>
+
+      {problems.length === 0 ? (
+        <div className={styles.reportClean}>✓ No problems found in the data</div>
+      ) : (
+        <div className={styles.reportIssues}>
+          {problems.length} thing{problems.length === 1 ? '' : 's'} worth a look
+        </div>
+      )}
+
+      {warnings.map((w, i) => (
+        <div key={i} className={w.level === 'warn' ? styles.warnRow : styles.infoRow}>
+          <div className={styles.warnTitle}>
+            <span className={styles.warnIcon}>{w.level === 'warn' ? '!' : 'i'}</span>
+            {w.title}
+          </div>
+          <div className={styles.warnDetail}>{w.detail}</div>
+        </div>
+      ))}
     </div>
   )
 }

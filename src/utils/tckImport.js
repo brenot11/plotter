@@ -109,6 +109,32 @@ function cleanVeteran(raw) {
 // "17A" -> base=17, suffix="A"
 // "17"  -> base=17, suffix=""
 
+// Lot labels are not always numbers. Six sections use lettered lots —
+// T1/T2/T3 in Lewisville South, 10W in Lewisville North, 6W/7W in La Center.
+// parseInt() mangles these: '7W' silently becomes 7 and merges into the real
+// lot 7, while 'T2' and 'T3' both become 0 and collide with each other.
+// So the label is kept verbatim and row position is derived separately.
+function normaliseLot(lotStr) {
+  return String(lotStr ?? '').trim()
+}
+
+// Sort key that keeps a lettered lot beside its numeric parent (7, 7W, 8)
+// and pushes purely alphabetic lots (T1, T2, T3) to the end of the section.
+export function lotSortKey(label) {
+  const m = String(label ?? '').trim().match(/^(\d+)(.*)$/)
+  if (m) return [0, parseInt(m[1], 10), m[2].toUpperCase()]
+  return [1, 0, String(label ?? '').toUpperCase()]
+}
+
+export function compareLots(a, b) {
+  const ka = lotSortKey(a), kb = lotSortKey(b)
+  for (let i = 0; i < 3; i++) {
+    if (ka[i] < kb[i]) return -1
+    if (ka[i] > kb[i]) return 1
+  }
+  return 0
+}
+
 function parseGrave(graveStr) {
   const s = String(graveStr).trim()
   const match = s.match(/^(\d+)([A-Za-z]*)$/)
@@ -120,11 +146,29 @@ function parseGrave(graveStr) {
 
 export function parseTCKBackup({ records, purchasers, cemetery, lots, maps }) {
 
+  // Collected as we go and surfaced in the import report, so anything odd in
+  // the data is visible rather than silently dropped.
+  const diag = {
+    counts:   {},
+    warnings: [],   // { level: 'warn'|'info', title, detail }
+  }
+  const warn = (level, title, detail) => diag.warnings.push({ level, title, detail })
+
   // 1. Parse all files
   const recordRows    = parseTSV(records)
   const purchaserRows = parseTSV(purchasers)
   const lotRows       = parseTSV(lots)
   const mapRows       = parseTSV(maps)
+
+  diag.counts.recordRows    = recordRows.length
+  diag.counts.purchaserRows = purchaserRows.length
+  diag.counts.lotRows       = lotRows.length
+  diag.counts.mapRows       = mapRows.length
+
+  for (const [name, rows] of [['Records', recordRows], ['Purchasers', purchaserRows],
+                              ['Lots', lotRows], ['Maps', mapRows]]) {
+    if (rows.length === 0) warn('warn', `${name} file is empty`, 'No rows were read. Check the file is the right one.')
+  }
 
   // 2. Build lookup maps
   const purchaserMap = {}
@@ -160,21 +204,30 @@ export function parseTCKBackup({ records, purchasers, cemetery, lots, maps }) {
   // 4. Group records by cemetery+section+lot+graveBase -> internments[]
   //    Key: "cemName|sectionName|lot|graveBase"
   const plotMap = {}
+  const skippedCem = {}   // unmapped CemeteryID -> count
+  let blankLocation = 0
 
   for (const rec of recordRows) {
     const cemId     = parseInt(rec.CemeteryID)
     const cemName   = CEMETERY_ID_TO_NAME[cemId]
     let   secName   = CEMETERY_ID_TO_SECTION[cemId]
-    if (!cemName || !secName) continue
+    if (!cemName || !secName) {
+      skippedCem[rec.CemeteryID] = (skippedCem[rec.CemeteryID] ?? 0) + 1
+      continue
+    }
+    if (!String(rec.Lot ?? '').trim() || !String(rec.Grave ?? '').trim()) {
+      blankLocation++
+      continue
+    }
 
     // La Center Center (147) has multiple sub-sections identified by cSection code
     if (cemId === 147 && rec.cSection) {
       secName = LA_CENTER_SUBSECTION[rec.cSection] ?? 'La Center Center'
     }   // unknown cemetery, skip
 
-    const lotNum    = parseInt(rec.Lot) || 0
+    const lotLabel  = normaliseLot(rec.Lot)
     const { base: graveBase, label: graveLabel } = parseGrave(rec.Grave)
-    const plotKey   = `${cemName}|${secName}|${lotNum}|${graveBase}`
+    const plotKey   = `${cemName}|${secName}|${lotLabel}|${graveBase}`
 
     // Look up purchaser
     const purch = purchaserMap[rec.PurchaserID] || null
@@ -227,10 +280,10 @@ export function parseTCKBackup({ records, purchasers, cemetery, lots, maps }) {
     if (!plotMap[plotKey]) {
       // First internment for this plot — create the plot shell
       plotMap[plotKey] = {
-        id:          `${cemName.replace(/\s/g,'_')}_${secName.replace(/\s/g,'_')}_L${lotNum}_G${graveBase}`,
+        id:          `${cemName.replace(/\s/g,'_')}_${secName.replace(/\s/g,'_')}_L${lotLabel}_G${graveBase}`,
         cemetery:    cemName,
         section:     secName,
-        lot:         lotNum,
+        lot:         lotLabel,
         grave:       graveBase,
         lotType:     lotMap[rec.LotID] || '',
         statusOverride: null,
@@ -395,8 +448,9 @@ export function parseTCKBackup({ records, purchasers, cemetery, lots, maps }) {
       if (!appData[cemName]?.[secName]) continue
 
       const { base: graveBase, label: graveLabel } = parseGrave(graveStr)
-      const lotNum  = parseInt(lotStr) || 0
-      const plotKey = `${cemName}|${secName}|${lotNum}|${graveBase}`
+      const lotLabel = normaliseLot(lotStr)
+      if (!lotLabel) continue
+      const plotKey  = `${cemName}|${secName}|${lotLabel}|${graveBase}`
 
       if (plotMap[plotKey]) {
         // Plot exists in Records — add to appData if not already there
@@ -408,10 +462,10 @@ export function parseTCKBackup({ records, purchasers, cemetery, lots, maps }) {
         // No matching Record — this is a genuinely available plot
         const [mapRow, mapCol] = posKey.split('_').map(Number)
         const availPlot = {
-          id:          `${cemName.replace(/\s/g,'_')}_${secName.replace(/\s/g,'_')}_L${lotNum}_G${graveBase}`,
+          id:          `${cemName.replace(/\s/g,'_')}_${secName.replace(/\s/g,'_')}_L${lotLabel}_G${graveBase}`,
           cemetery:    cemName,
           section:     secName,
-          lot:         lotNum,
+          lot:         lotLabel,
           grave:       graveBase,
           lotType:     '',
           statusOverride: null,
@@ -453,11 +507,61 @@ export function parseTCKBackup({ records, purchasers, cemetery, lots, maps }) {
   // Sort plots within each section by lot then grave
   for (const cem of Object.values(appData)) {
     for (const sec of Object.values(cem)) {
-      sec.sort((a, b) => a.lot !== b.lot ? a.lot - b.lot : a.grave - b.grave)
+      sec.sort((a, b) => {
+        const c = compareLots(a.lot, b.lot)
+        return c !== 0 ? c : a.grave - b.grave
+      })
+
+      // Row position on the map. Derived from the ordered set of lot labels in
+      // this section rather than the lot number, so lettered lots get their own
+      // row instead of colliding with a numeric one.
+      const order = [...new Set(sec.map(p => p.lot))].sort(compareLots)
+      const rowOf = new Map(order.map((label, i) => [label, i]))
+      for (const p of sec) p.lotIndex = rowOf.get(p.lot) ?? 0
     }
   }
 
-  return { appData, sectionGrids }
+  // ── Record-level findings
+  const skippedTotal = Object.values(skippedCem).reduce((a, b) => a + b, 0)
+  if (skippedTotal > 0) {
+    const ids = Object.entries(skippedCem)
+      .sort((a, b) => b[1] - a[1])
+      .map(([id, n]) => `ID ${id} (${n})`)
+      .join(', ')
+    warn('warn', `${skippedTotal} record${skippedTotal === 1 ? '' : 's'} skipped — unknown cemetery`,
+      `These rows had a CemeteryID that Plotter doesn't recognise: ${ids}. ` +
+      `If a new cemetery or section was added in The Crypt Keeper, it needs adding to Plotter too.`)
+  }
+  if (blankLocation > 0) {
+    warn('warn', `${blankLocation} record${blankLocation === 1 ? '' : 's'} skipped — no lot or grave`,
+      'These rows have no location in The Crypt Keeper, so there is nowhere to put them on the map. ' +
+      'Worth checking them in TCK if you expect them to appear.')
+  }
+
+  // ── Final tallies for the report
+  let plots = 0, internments = 0, available = 0, lettered = new Set()
+  for (const [cemName, sections] of Object.entries(appData)) {
+    for (const [secName, arr] of Object.entries(sections)) {
+      plots += arr.length
+      for (const p of arr) {
+        internments += p.internments.length
+        if (p.internments.length === 0 && !p.purchaserLastName) available++
+        if (!/^\d+$/.test(String(p.lot))) lettered.add(`${secName} · lot ${p.lot}`)
+      }
+      if (arr.length === 0) warn('warn', `${secName} has no plots`, 'This section imported empty. It may be missing from the Maps file.')
+    }
+  }
+  diag.counts.plots       = plots
+  diag.counts.internments = internments
+  diag.counts.available   = available
+
+  if (lettered.size > 0) {
+    warn('info', `${lettered.size} lettered lot${lettered.size === 1 ? '' : 's'} kept as-is`,
+      [...lettered].sort().slice(0, 8).join(', ') + (lettered.size > 8 ? ', …' : '') +
+      ' — these get their own row rather than merging into a numbered lot.')
+  }
+
+  return { appData, sectionGrids, diag }
 }
 
 // ── Stats helper ──────────────────────────────────────────────────────────────

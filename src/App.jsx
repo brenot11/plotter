@@ -103,17 +103,41 @@ export default function App() {
 
   const currentPlots = allData?.[activeCem]?.[activeSection] ?? []
 
+  // Does a plot match the current query? Shared by the section filter and
+  // the cross-cemetery hit count so the two can never disagree.
+  const plotMatches = (p, q) => {
+    if (`${p.purchaserFirstName} ${p.purchaserLastName}`.toLowerCase().includes(q)) return true
+    return p.internments.some(i =>
+      `${i.interredFirstName} ${i.interredLastName}`.toLowerCase().includes(q) ||
+      i.internmentNumber.toLowerCase().includes(q)
+    )
+  }
+
   const filteredPlots = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (q.length < 2) return currentPlots
-    return currentPlots.filter(p => {
-      if (`${p.purchaserFirstName} ${p.purchaserLastName}`.toLowerCase().includes(q)) return true
-      return p.internments.some(i =>
-        `${i.interredFirstName} ${i.interredLastName}`.toLowerCase().includes(q) ||
-        i.internmentNumber.toLowerCase().includes(q)
-      )
-    })
+    return currentPlots.filter(p => plotMatches(p, q))
   }, [currentPlots, search])
+
+  // Hit counts for every section, so she can see at a glance whether a name
+  // exists anywhere rather than paging through sections to find out.
+  const searchHits = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (q.length < 2 || !allData) return null
+
+    const sections = []
+    let total = 0
+    for (const cem of activeCemeteries) {
+      for (const sec of (activeSections[cem] ?? [])) {
+        const plots = allData[cem]?.[sec] ?? []
+        let n = 0
+        for (const p of plots) if (plotMatches(p, q)) n++
+        if (n > 0) sections.push({ cemetery: cem, section: sec, count: n })
+        total += n
+      }
+    }
+    return { total, sections }
+  }, [allData, search, activeCemeteries, activeSections])
 
   const [cemStatsMode, setCemStatsMode] = useState(false)
 
@@ -505,6 +529,38 @@ export default function App() {
             {search && (
               <button className={styles.searchClear} onClick={() => setSearch('')}
                 title="Clear search" aria-label="Clear search">×</button>
+            )}
+
+            {searchHits && (
+              <div className={styles.searchResults}>
+                {searchHits.total === 0 ? (
+                  <div className={styles.searchNone}>No matches in any cemetery</div>
+                ) : (
+                  <>
+                    <div className={styles.searchCount}>
+                      {searchHits.total} {searchHits.total === 1 ? 'match' : 'matches'}
+                    </div>
+                    {searchHits.sections.map(h => {
+                      const isHere = h.cemetery === activeCem && h.section === activeSection
+                      return (
+                        <button
+                          key={`${h.cemetery}|${h.section}`}
+                          className={`${styles.searchHit} ${isHere ? styles.searchHitHere : ''}`}
+                          onClick={() => {
+                            setActiveCem(h.cemetery)
+                            setActiveSection(h.section)
+                            setSelectedPlot(null)
+                            setActivePlotId(null)
+                          }}
+                        >
+                          <span className={styles.searchHitName}>{h.section}</span>
+                          <span className={styles.searchHitCount}>{h.count}</span>
+                        </button>
+                      )
+                    })}
+                  </>
+                )}
+              </div>
             )}
           </div>
           <button className={`btn btn-ghost ${styles.changelogBtn}`} style={{ fontSize: 12 }}
