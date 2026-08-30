@@ -199,7 +199,7 @@ export default function PlotCard({
             </Row>
           )}
           {int?.isCremains === 'Yes' && (
-            <Row label="Type"><span style={{ color: 'var(--cremains)', fontWeight: 600 }}>Cremains</span></Row>
+            <Row label="Type"><span style={{ color: 'var(--accent)' }}>Cremains</span></Row>
           )}
           {(plot.purchaserFirstName || plot.purchaserLastName) && (
             <Row label="Owner">{plot.purchaserFirstName} {plot.purchaserLastName}</Row>

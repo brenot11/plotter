@@ -147,11 +147,10 @@
   font-size: 10px;
   padding: 2px 7px;
   border-radius: 20px;
-  background: var(--cremains-bg);
-  border: 1px solid var(--cremains-brd);
-  color: var(--cremains);
+  background: rgba(0,212,200,0.1);
+  border: 1px solid rgba(0,212,200,0.2);
+  color: var(--accent);
   font-family: var(--font-mono);
-  font-weight: 600;
 }
 
 .pickArrow {
@@ -221,7 +220,7 @@
   border-color: var(--text-primary);
   color: var(--text-primary);
 }
-.flagBtnBlackstoneOn .flagSwatch { background: var(--blackstone-swatch, #e4e4e7); }
+.flagBtnBlackstoneOn .flagSwatch { background: var(--blackstone-swatch, #a1a1aa); }
 
 /* Note swatch — matches the yellow square drawn on the map */
 .flagDot {

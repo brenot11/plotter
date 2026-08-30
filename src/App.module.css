@@ -173,9 +173,6 @@
 
 /* ── Legend ───────────────────────────────────────────────────────────────── */
 .legend {
-  position: absolute;
-  bottom: 16px;
-  left: 16px;
   background: var(--legend-bg, rgba(15, 17, 20, 0.85));
   backdrop-filter: blur(8px);
   border: 1px solid var(--border-light);
@@ -390,3 +387,34 @@
 }
 
 .modalBtns { display: flex; gap: 8px; }
+
+
+/* ── Legend stack — status panel above icons panel ────────────────────────── */
+.legendStack {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.legendTitle {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  padding-right: 10px;
+  margin-right: 2px;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+:global(html[data-theme="field"]) .legendTitle {
+  color: #52525b;
+  font-weight: 700;
+  border-right-color: #a1a1aa;
+}

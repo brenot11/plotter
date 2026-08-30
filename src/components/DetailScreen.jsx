@@ -288,7 +288,7 @@ function InternmentDetail({ plot, internment: initInt, isNew, onBack, onSave, on
           </div>
         </div>
         {int.isCremains === 'Yes' && (
-          <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, background: 'var(--cremains-bg)', border: '1px solid var(--cremains-brd)', color: 'var(--cremains)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+          <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, background: 'rgba(0,212,200,0.1)', border: '1px solid rgba(0,212,200,0.2)', color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
             Cremains
           </span>
         )}

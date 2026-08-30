@@ -601,40 +601,56 @@ export default function App() {
           noteIds={noteIds}
         />
 
-        <div className={styles.legend}>
-          {Object.entries(STATUS_META).map(([s, m]) => (
-            <div key={s} className={styles.legendItem}>
-              <span className={styles.legendDot} style={{
-                background: fieldMode ? MAP_PLOT_FIELD[s]?.fill : m.color,
-                border: fieldMode ? `2px solid ${MAP_PLOT_FIELD[s]?.stroke}` : 'none',
-              }} />
-              {m.label}
+        <div className={styles.legendStack}>
+          {/* Plot fill colours */}
+          <div className={styles.legend}>
+            <span className={styles.legendTitle}>Status</span>
+            {Object.entries(STATUS_META).map(([s, m]) => (
+              <div key={s} className={styles.legendItem}>
+                <span className={styles.legendDot} style={{
+                  background: fieldMode ? MAP_PLOT_FIELD[s]?.fill : m.color,
+                  border: fieldMode ? `2px solid ${MAP_PLOT_FIELD[s]?.stroke}` : 'none',
+                }} />
+                {m.label}
+              </div>
+            ))}
+          </div>
+
+          {/* Icons drawn on top of plots */}
+          <div className={styles.legend}>
+            <span className={styles.legendTitle}>Icons</span>
+            <div className={styles.legendItem}>
+              <span style={{ color: '#b45309', fontSize: 12, lineHeight: 1 }}>★</span>
+              Veteran
             </div>
-          ))}
-          <div className={styles.legendItem}>
-            <span style={{ color: fieldMode ? '#b45309' : '#fcd34d', fontSize: 11, lineHeight: 1 }}>★</span>
-            Veteran
-          </div>
-          <div className={styles.legendItem}>
-            <span style={{
-              display: 'inline-block', width: 9, height: 9, borderRadius: 2,
-              background: fieldMode ? '#18181b' : '#e4e4e7', flexShrink: 0,
-            }} />
-            Blackstone
-          </div>
-          <div className={styles.legendItem}>
-            <span style={{
-              display: 'inline-block', width: 9, height: 9, borderRadius: 2,
-              background: fieldMode ? '#eab308' : '#fde047', flexShrink: 0,
-            }} />
-            Note
-          </div>
-          <div className={styles.legendItem}>
-            <span style={{
-              display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-              background: fieldMode ? '#dc2626' : '#f87171', flexShrink: 0,
-            }} />
-            Pending changes
+            <div className={styles.legendItem}>
+              <span style={{
+                display: 'inline-block', width: 9, height: 9, borderRadius: 2,
+                background: fieldMode ? '#18181b' : '#a1a1aa', flexShrink: 0,
+              }} />
+              Blackstone
+            </div>
+            <div className={styles.legendItem}>
+              <span style={{
+                display: 'inline-block', width: 9, height: 9, borderRadius: 2,
+                background: fieldMode ? '#eab308' : '#fde047', flexShrink: 0,
+              }} />
+              Note
+            </div>
+            <div className={styles.legendItem}>
+              <span style={{
+                display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                background: fieldMode ? '#ea580c' : '#00d4c8', flexShrink: 0,
+              }} />
+              2+ internments
+            </div>
+            <div className={styles.legendItem}>
+              <span style={{
+                display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                background: fieldMode ? '#dc2626' : '#f87171', flexShrink: 0,
+              }} />
+              Pending edit
+            </div>
           </div>
         </div>
 

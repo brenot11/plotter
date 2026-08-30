@@ -44,11 +44,6 @@
   --status-unavailable-bg: #111318;
   --status-unavailable-txt:#4b5563;
 
-  /* Cremains marker — deliberately orange so it never reads as a status colour */
-  --cremains:     #fb923c;
-  --cremains-bg:  rgba(251,146,60,0.12);
-  --cremains-brd: rgba(251,146,60,0.35);
-
   --font-sans:  'Geist', 'Inter', system-ui, sans-serif;
   --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
 
@@ -96,9 +91,6 @@
   --status-unavailable-bg: #e5e7eb;
   --status-unavailable-txt:#1f2937;
 
-  --cremains:     #9a3412;
-  --cremains-bg:  #ffedd5;
-  --cremains-brd: #c2410c;
 }
 
 html, body, #root {
