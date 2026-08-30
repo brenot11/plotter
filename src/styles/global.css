@@ -44,12 +44,61 @@
   --status-unavailable-bg: #111318;
   --status-unavailable-txt:#4b5563;
 
+  /* Cremains marker — deliberately orange so it never reads as a status colour */
+  --cremains:     #fb923c;
+  --cremains-bg:  rgba(251,146,60,0.12);
+  --cremains-brd: rgba(251,146,60,0.35);
+
   --font-sans:  'Geist', 'Inter', system-ui, sans-serif;
   --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
 
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+}
+
+/* ── FIELD MODE ───────────────────────────────────────────────────────────────
+   Light, high-contrast palette for outdoor use in direct sunlight.
+   A bright background competes with ambient light instead of mirroring it,
+   and near-black text gives maximum legibility. Type is also scaled up. */
+[data-theme="field"] {
+  --bg-deep:       #f5f5f0;
+  --bg-mid:        #ffffff;
+  --bg-surface:    #ececea;
+  --bg-raised:     #dededa;
+  --bg-hover:      #d0d0cc;
+
+  --accent:        #00706a;
+  --accent-dim:    #00908a;
+  --accent-bright: #004d49;
+  --accent-glow:   rgba(0, 112, 106, 0.18);
+
+  --text-primary:  #000000;
+  --text-secondary:#3f3f46;
+  --text-muted:    #6b7280;
+
+  --border:        #a1a1aa;
+  --border-light:  #71717a;
+
+  --status-occupied:    #1d4ed8;
+  --status-occupied-bg: #dbeafe;
+  --status-occupied-txt:#1e3a8a;
+
+  --status-available:    #047857;
+  --status-available-bg: #d1fae5;
+  --status-available-txt:#064e3b;
+
+  --status-sold:    #6d28d9;
+  --status-sold-bg: #ede9fe;
+  --status-sold-txt:#4c1d95;
+
+  --status-unavailable:    #4b5563;
+  --status-unavailable-bg: #e5e7eb;
+  --status-unavailable-txt:#1f2937;
+
+  --cremains:     #9a3412;
+  --cremains-bg:  #ffedd5;
+  --cremains-brd: #c2410c;
 }
 
 html, body, #root {
@@ -63,6 +112,21 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Larger base type in field mode. data-theme sits on <html>. */
+html[data-theme="field"],
+html[data-theme="field"] body,
+html[data-theme="field"] #root { font-size: 16px; }
+
+/* Heavier weights and stronger borders throughout field mode */
+[data-theme="field"] .btn { font-weight: 600; border-width: 2px; }
+[data-theme="field"] .field-input {
+  border-width: 2px;
+  border-color: var(--border-light);
+  color: #000;
+  font-weight: 500;
+}
+[data-theme="field"] .field-input::placeholder { color: #6b7280; }
 
 button { font-family: var(--font-sans); cursor: pointer; }
 input, select, textarea { font-family: var(--font-sans); }

@@ -60,7 +60,7 @@ export const REAL_CEMETERIES = ['Highland', 'Crawford', 'Lewisville', 'La Center
 export const REAL_SECTIONS = {
   Highland:   ['Highland'],
   Crawford:   ['Crawford East', 'Crawford Center', 'Crawford South', 'Crawford Baby'],
-  Lewisville: ['Lewisville North', 'Lewisville South'],
+  Lewisville: ['Lewisville South', 'Lewisville North'],
   'La Center':['La Center East', 'La Center Center', 'La Center North', 'La Center West'],
 }
 

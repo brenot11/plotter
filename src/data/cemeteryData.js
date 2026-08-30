@@ -25,12 +25,73 @@ export const STATUS_META = {
   unavailable: { label: 'Unavailable', color: '#374151', bg: '#111318', text: '#4b5563' },
 }
 
+// Field mode badge colors — dark text on light tinted backgrounds
+export const STATUS_META_FIELD = {
+  occupied:    { label: 'Occupied',    color: '#1d4ed8', bg: '#dbeafe', text: '#1e3a8a' },
+  available:   { label: 'Available',   color: '#047857', bg: '#d1fae5', text: '#064e3b' },
+  sold:        { label: 'Sold',        color: '#6d28d9', bg: '#ede9fe', text: '#4c1d95' },
+  unavailable: { label: 'Unavailable', color: '#4b5563', bg: '#e5e7eb', text: '#1f2937' },
+}
+
 // MAP_PLOT: canvas-specific colors — dark and restrained, easy on the eyes.
 export const MAP_PLOT = {
   occupied:    { fill: '#1a2133', stroke: '#2e4872', strokeWidth: 1.5 },
   available:   { fill: '#0d2118', stroke: '#1a5c35', strokeWidth: 1.2 },
   sold:        { fill: '#1e1428', stroke: '#4a2d7a', strokeWidth: 1.2 },
   unavailable: { fill: '#0e0f12', stroke: null,      strokeWidth: 0   },
+}
+
+// Field mode plot colors — saturated fills, heavy dark borders for sunlight
+export const MAP_PLOT_FIELD = {
+  occupied:    { fill: '#bfdbfe', stroke: '#1d4ed8', strokeWidth: 2.5 },
+  available:   { fill: '#ffffff', stroke: '#047857', strokeWidth: 2.5 },
+  sold:        { fill: '#ddd6fe', stroke: '#6d28d9', strokeWidth: 2.5 },
+  unavailable: { fill: '#d1d5db', stroke: '#6b7280', strokeWidth: 1.5 },
+}
+
+// ── Canvas palettes ──────────────────────────────────────────────────────────
+// All non-plot canvas colors, swapped wholesale between themes.
+
+export const CANVAS_DARK = {
+  background:     '#0a0b0d',
+  altRowTint:     'rgba(255,255,255,0.012)',
+  headerLabel:    '#374151',
+  lotLabel:       '#9ca3af',
+  graveNum:       'rgba(255,255,255,0.5)',
+  graveNumEmpty:  'rgba(255,255,255,0.1)',
+  lotNumInPlot:   'rgba(255,255,255,0.09)',
+  surname:        'rgba(255,255,255,0.3)',
+  multiDot:       '#00d4c8',
+  pendingStroke:  '#f87171',
+  pendingDot:     '#f87171',
+  activeStroke:   'rgba(255,255,255,0.85)',
+  veteranStar:    '#fcd34d',
+  blackstone:     '#e4e4e7',
+  noteDot:        '#fde047',
+  watermark:      'rgba(0, 212, 200, 0.04)',
+  activeWidth:    2,
+  pendingWidth:   1.5,
+}
+
+export const CANVAS_FIELD = {
+  background:     '#f5f5f0',
+  altRowTint:     'rgba(0,0,0,0.03)',
+  headerLabel:    '#374151',
+  lotLabel:       '#111827',
+  graveNum:       'rgba(0,0,0,0.8)',
+  graveNumEmpty:  'rgba(0,0,0,0.25)',
+  lotNumInPlot:   'rgba(0,0,0,0.22)',
+  surname:        'rgba(0,0,0,0.55)',
+  multiDot:       '#0891b2',
+  pendingStroke:  '#dc2626',
+  pendingDot:     '#dc2626',
+  activeStroke:   '#52525b',
+  veteranStar:    '#b45309',
+  blackstone:     '#18181b',
+  noteDot:        '#eab308',
+  watermark:      'rgba(0,0,0,0.05)',
+  activeWidth:    3.5,
+  pendingWidth:   3,
 }
 
 export const LOT_TYPES        = ['Standard 4x8', 'Infant 3x3', 'Double 4x10', 'Veterans 4x8', 'Cremains 2x2']

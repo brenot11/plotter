@@ -3,7 +3,12 @@ import StatusBadge from './StatusBadge'
 import { derivePlotStatus } from '../data/cemeteryData'
 import styles from './PlotCard.module.css'
 
-export default function PlotCard({ plot, onClose, onViewFull, pendingIntIds = new Set() }) {
+export default function PlotCard({
+  plot, onClose, onViewFull, pendingIntIds = new Set(),
+  hasBlackstone = false, noteText = '',
+  onToggleBlackstone, onSaveNote,
+  isUnavailable = false, onToggleUnavailable,
+}) {
   const status       = derivePlotStatus(plot)
   const internments  = plot.internments ?? []
   const count        = internments.length
@@ -16,6 +21,69 @@ export default function PlotCard({ plot, onClose, onViewFull, pendingIntIds = ne
     setChosen(int)
     setPicking(false)
   }
+
+
+  // ── Field flag controls (blackstone + quick note) — per plot ───────────────
+  const [noteOpen,  setNoteOpen]  = useState(false)
+  const [noteDraft, setNoteDraft] = useState(noteText ?? '')
+
+  const flagRow = (
+    <div className={styles.flagArea}>
+      <div className={styles.flagButtons}>
+        <button
+          className={`${styles.flagBtn} ${hasBlackstone ? styles.flagBtnBlackstoneOn : ''}`}
+          onClick={() => onToggleBlackstone?.(plot)}
+        >
+          <span className={styles.flagSwatch} />
+          {hasBlackstone ? 'Blackstone needed' : 'Needs blackstone'}
+        </button>
+        <button
+          className={`${styles.flagBtn} ${noteText ? styles.flagBtnNoteOn : ''}`}
+          onClick={() => { setNoteDraft(noteText ?? ''); setNoteOpen(o => !o) }}
+        >
+          <span className={styles.flagDot} />
+          {noteText ? 'Edit note' : 'Add note'}
+        </button>
+      </div>
+
+      <button
+        className={`${styles.flagBtn} ${styles.unavailBtn} ${isUnavailable ? styles.unavailBtnOn : ''}`}
+        onClick={() => onToggleUnavailable?.(plot)}
+      >
+        {isUnavailable ? '✓ Marked unavailable' : 'Mark plot unavailable'}
+      </button>
+
+      {noteText && !noteOpen && (
+        <div className={styles.notePreview}>{noteText}</div>
+      )}
+
+      {noteOpen && (
+        <div className={styles.noteEditor}>
+          <textarea
+            className="field-input"
+            rows={3}
+            autoFocus
+            value={noteDraft}
+            onChange={e => setNoteDraft(e.target.value)}
+            placeholder="Quick note about this plot…"
+          />
+          <div className={styles.noteEditorBtns}>
+            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}
+              onClick={() => { onSaveNote?.(plot, noteDraft); setNoteOpen(false) }}>
+              Save note
+            </button>
+            {noteText && (
+              <button className="btn btn-ghost"
+                onClick={() => { onSaveNote?.(plot, ''); setNoteDraft(''); setNoteOpen(false) }}>
+                Clear
+              </button>
+            )}
+            <button className="btn btn-ghost" onClick={() => setNoteOpen(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 
   // ── Picker view — shown when multiple internments ──────────────────────────
   if (picking) {
@@ -77,6 +145,8 @@ export default function PlotCard({ plot, onClose, onViewFull, pendingIntIds = ne
             </button>
           </div>
 
+          {flagRow}
+
           <div className={styles.footer}>
             <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}
               onClick={() => onViewFull({ plot, internment: null })}>
@@ -129,7 +199,7 @@ export default function PlotCard({ plot, onClose, onViewFull, pendingIntIds = ne
             </Row>
           )}
           {int?.isCremains === 'Yes' && (
-            <Row label="Type"><span style={{ color: 'var(--accent)' }}>Cremains</span></Row>
+            <Row label="Type"><span style={{ color: 'var(--cremains)', fontWeight: 600 }}>Cremains</span></Row>
           )}
           {(plot.purchaserFirstName || plot.purchaserLastName) && (
             <Row label="Owner">{plot.purchaserFirstName} {plot.purchaserLastName}</Row>
@@ -140,6 +210,8 @@ export default function PlotCard({ plot, onClose, onViewFull, pendingIntIds = ne
           )}
           {plot.markerType && <Row label="Marker">{plot.markerType}</Row>}
         </div>
+
+        {flagRow}
 
         <div className={styles.footer}>
           <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}

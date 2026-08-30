@@ -236,3 +236,97 @@
   max-width: 320px;
   line-height: 1.65;
 }
+
+
+/* ── Tab bar ──────────────────────────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  gap: 4px;
+  padding: 10px 20px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-mid);
+  flex-shrink: 0;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+.tab:hover { color: var(--text-primary); }
+
+.tabActive {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tabCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 20px;
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+.tabActive .tabCount {
+  background: var(--accent);
+  color: var(--bg-deep);
+}
+
+/* ── Flag entry marks ─────────────────────────────────────────────────────── */
+.stoneMark,
+.noteMark {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.stoneMark { background: #e4e4e7; border-radius: 2px; }
+.noteMark  { background: #fde047; border-radius: 2px; }
+
+.noteBody {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  background: var(--bg-mid);
+  border-left: 2px solid #fde047;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 8px 11px;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+}
+
+/* ── Field mode ───────────────────────────────────────────────────────────── */
+:global(html[data-theme="field"]) .tab { font-weight: 600; color: #3f3f46; }
+:global(html[data-theme="field"]) .tabActive { color: var(--accent-bright); }
+:global(html[data-theme="field"]) .tabBar { border-bottom-width: 2px; }
+:global(html[data-theme="field"]) .entry { border-width: 2px; }
+:global(html[data-theme="field"]) .entryName { font-weight: 700; }
+:global(html[data-theme="field"]) .stoneMark { background: #18181b; }
+:global(html[data-theme="field"]) .noteMark  { background: #eab308; }
+:global(html[data-theme="field"]) .noteBody {
+  border-left-color: #a16207;
+  color: #18181b;
+  font-weight: 500;
+}
+:global(html[data-theme="field"]) .changeValue { font-weight: 700; }

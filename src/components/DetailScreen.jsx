@@ -25,7 +25,7 @@ const EDITED_COLOR = '#f87171'   // red for edited fields (matches danger button
 const NORMAL_COLOR = 'var(--text-primary)'
 
 // ── Top-level screen ──────────────────────────────────────────────────────────
-export default function DetailScreen({ plotAndInt, onBack, onSave, onChangeLog, onReloadFromTCK }) {
+export default function DetailScreen({ plotAndInt, onBack, onSave, onChangeLog, onReloadFromTCK, onSetStatusOverride }) {
   const { plot: initPlot, internment: initInt, openAdd } = plotAndInt
 
   const [plot,        setPlot]        = useState(initPlot)
@@ -156,6 +156,7 @@ export default function DetailScreen({ plotAndInt, onBack, onSave, onChangeLog, 
 
         <PlotInfoSection
           plot={plot}
+          onSetStatusOverride={onSetStatusOverride}
           editing={editingPlot}
           onEdit={() => setEditingPlot(true)}
           onSave={handleSavePlot}
@@ -168,7 +169,7 @@ export default function DetailScreen({ plotAndInt, onBack, onSave, onChangeLog, 
 }
 
 // ── Plot info / ownership section ─────────────────────────────────────────────
-function PlotInfoSection({ plot, editing, onEdit, onSave, onCancel, derivedStatus }) {
+function PlotInfoSection({ plot, editing, onEdit, onSave, onCancel, derivedStatus, onSetStatusOverride }) {
   const [draft, setDraft] = useState(plot)
   const set = (f, v) => setDraft(p => ({ ...p, [f]: v }))
 
@@ -196,7 +197,10 @@ function PlotInfoSection({ plot, editing, onEdit, onSave, onCancel, derivedStatu
         <F label="Status Override">
           {editing
             ? <Sel value={draft.statusOverride ?? ''} options={['', ...STATUSES]}
-                onChange={v => set('statusOverride', v || null)} allowEmpty emptyLabel="Auto" />
+                onChange={v => {
+                  set('statusOverride', v || null)
+                  onSetStatusOverride?.(plot, v || null)
+                }} allowEmpty emptyLabel="Auto" />
             : draft.statusOverride
               ? <StatusBadge status={draft.statusOverride} small />
               : <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Auto ({derivedStatus})</span>
@@ -284,7 +288,7 @@ function InternmentDetail({ plot, internment: initInt, isNew, onBack, onSave, on
           </div>
         </div>
         {int.isCremains === 'Yes' && (
-          <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, background: 'rgba(0,212,200,0.1)', border: '1px solid rgba(0,212,200,0.2)', color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, background: 'var(--cremains-bg)', border: '1px solid var(--cremains-brd)', color: 'var(--cremains)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
             Cremains
           </span>
         )}

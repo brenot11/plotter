@@ -1,12 +1,18 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { CEMETERIES, SECTIONS, STATUS_META, derivePlotStatus, loadData, saveData, generateAllData } from './data/cemeteryData'
+import { CEMETERIES, SECTIONS, STATUS_META, MAP_PLOT_FIELD, derivePlotStatus, loadData, saveData, generateAllData } from './data/cemeteryData'
 import { REAL_CEMETERIES, REAL_SECTIONS } from './utils/tckImport'
 import { loadChangeLog, saveChangeLog, upsertChangeLogEntry, commitChangeLogEntry, revertChangeLogEntry, removeChangeLogEntry, clearCommittedEntries } from './utils/changeLog'
 import MapCanvas          from './components/MapCanvas'
 import PlotCard           from './components/PlotCard'
 import DetailScreen       from './components/DetailScreen'
 import ImportExportScreen from './components/ImportExportScreen'
-import ChangeLogScreen    from './components/ChangeLogScreen'
+import ListsScreen        from './components/ListsScreen'
+import {
+  loadPlotFlags, toggleBlackstone, setPlotNote,
+  clearBlackstone, clearNote, blackstonePlotIds, notePlotIds,
+  setPlotStatusOverride, applyFlagsToData,
+  loadGeneralNotes, addGeneralNote, updateGeneralNote, removeGeneralNote,
+} from './utils/plotFlags'
 import styles             from './App.module.css'
 
 export default function App() {
@@ -20,8 +26,24 @@ export default function App() {
   const [detailTarget,  setDetailTarget]  = useState(null)
   const [showImport,    setShowImport]    = useState(false)
   const [showChangeLog, setShowChangeLog] = useState(false)
+  const [listsTab,      setListsTab]      = useState('changes')
+  const [plotFlags,     setPlotFlags]     = useState(() => loadPlotFlags())
+  const [generalNotes,  setGeneralNotes]  = useState(() => loadGeneralNotes())
+  const [noteModal,     setNoteModal]     = useState(null)   // null | {id?, text}
   const [activeCem,     setActiveCem]     = useState(CEMETERIES[0])
   const [activeSection, setActiveSection] = useState(SECTIONS[CEMETERIES[0]][0])
+
+  // Field mode — light, high-contrast palette for outdoor use
+  const [fieldMode, setFieldMode] = useState(() => {
+    try { return localStorage.getItem('plotter_field_mode') === '1' }
+    catch { return false }
+  })
+
+  // Keep the <html data-theme> attribute in sync so CSS variables switch
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', fieldMode ? 'field' : 'dark')
+    try { localStorage.setItem('plotter_field_mode', fieldMode ? '1' : '0') } catch {}
+  }, [fieldMode])
 
   // Per-section flip preferences — stored in localStorage (tiny, fine)
   const [flippedSections, setFlippedSections] = useState(() => {
@@ -58,6 +80,8 @@ export default function App() {
     loadData()
       .then(data => {
         console.log('[Plotter] App data ready, keys:', Object.keys(data).slice(0, 5))
+        // Re-apply Plotter-only status overrides, which survive TCK reimports
+        applyFlagsToData(data, loadPlotFlags())
         setAllData(data)
         // Switch to real cemetery names if TCK data is loaded
         if (data._sectionGrids) {
@@ -125,6 +149,55 @@ export default function App() {
 
   const stats = cemStatsMode && cemStats ? cemStats : sectionStats
   const pendingCount = changeLog.filter(e => !e.committed).length
+
+  // Per-plot field flags — blackstones and quick notes
+  const blackstoneIds = useMemo(() => blackstonePlotIds(plotFlags), [plotFlags])
+  const noteIds       = useMemo(() => notePlotIds(plotFlags),       [plotFlags])
+  const listsCount    = pendingCount + blackstoneIds.size + noteIds.size + generalNotes.length
+
+  const handleToggleBlackstone = (plot) => setPlotFlags(f => toggleBlackstone(f, plot))
+  const handleSaveNote         = (plot, text) => setPlotFlags(f => setPlotNote(f, plot, text))
+  const handleClearBlackstone  = (plotId) => setPlotFlags(f => clearBlackstone(f, plotId))
+  const handleClearNote        = (plotId) => setPlotFlags(f => clearNote(f, plotId))
+
+  // Status override lives in flags, but derivePlotStatus reads it off the plot,
+  // so update both together.
+  const handleSetStatusOverride = (plot, status) => {
+    setPlotFlags(f => setPlotStatusOverride(f, plot, status))
+    const updated = { ...plot, statusOverride: status || null }
+    setAllData(prev => {
+      if (!prev) return prev
+      const next = { ...prev }
+      const arr  = [...(next[plot.cemetery]?.[plot.section] ?? [])]
+      const idx  = arr.findIndex(p => p.id === plot.id)
+      if (idx < 0) return prev
+      arr[idx] = updated
+      next[plot.cemetery] = { ...next[plot.cemetery], [plot.section]: arr }
+      saveData(next)
+      return next
+    })
+    setSelectedPlot(sp => sp?.id === plot.id ? updated : sp)
+    setDetailTarget(dt => dt?.plot?.id === plot.id ? { ...dt, plot: updated } : dt)
+  }
+
+  // General notes — not attached to any plot
+  const handleSaveGeneralNote = (id, text) => {
+    setGeneralNotes(n => id ? updateGeneralNote(n, id, text) : addGeneralNote(n, text))
+    setNoteModal(null)
+  }
+  const handleDeleteGeneralNote = (id) => setGeneralNotes(n => removeGeneralNote(n, id))
+
+  // Jump to a plot from one of the flag lists
+  const handleNavigateToPlot = (entry) => {
+    setActiveCem(entry.cemetery)
+    setActiveSection(entry.section)
+    const plots = allData?.[entry.cemetery]?.[entry.section] ?? []
+    const plot  = plots.find(p => p.id === entry.plotId)
+    if (plot) {
+      setActivePlotId(plot.id)
+      setSelectedPlot(plot)
+    }
+  }
 
   const handleSavePlot = (updatedPlot, changeInfo) => {
     setAllData(prev => {
@@ -360,6 +433,7 @@ export default function App() {
   }
 
   const handleImport = (newData) => {
+    applyFlagsToData(newData, plotFlags)
     setAllData(newData)
     saveData(newData)
     // Reset to first cemetery/section on fresh import
@@ -425,17 +499,34 @@ export default function App() {
           ))}
         </nav>
         <div className={styles.topRight}>
-          <input className={styles.searchInput} placeholder="Search name or #…"
-            value={search} onChange={e => setSearch(e.target.value)} />
-          <button className={`btn btn-ghost ${styles.changelogBtn}`} style={{ fontSize: 12 }}
-            onClick={() => setShowChangeLog(true)}>
-            Changes
-            {pendingCount > 0 && (
-              <span className={styles.badge}>{pendingCount}</span>
+          <div className={styles.searchWrap}>
+            <input className={styles.searchInput} placeholder="Search name or #…"
+              value={search} onChange={e => setSearch(e.target.value)} />
+            {search && (
+              <button className={styles.searchClear} onClick={() => setSearch('')}
+                title="Clear search" aria-label="Clear search">×</button>
             )}
+          </div>
+          <button className={`btn btn-ghost ${styles.changelogBtn}`} style={{ fontSize: 12 }}
+            onClick={() => { setListsTab('changes'); setShowChangeLog(true) }}>
+            Lists
+            {listsCount > 0 && (
+              <span className={styles.badge}>{listsCount}</span>
+            )}
+          </button>
+          <button className={`btn btn-ghost ${styles.addNoteBtn}`} style={{ fontSize: 12 }}
+            onClick={() => setNoteModal({ text: '' })}>
+            + Note
           </button>
           <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => setShowImport(true)}>
             Import / Export
+          </button>
+          <button
+            className={`btn btn-ghost ${styles.fieldBtn} ${fieldMode ? styles.fieldBtnActive : ''}`}
+            onClick={() => setFieldMode(m => !m)}
+            title={fieldMode ? 'Switch to dark mode' : 'Switch to field mode (high contrast for outdoors)'}
+          >
+            {fieldMode ? '☾' : '☀'}
           </button>
         </div>
       </header>
@@ -505,21 +596,44 @@ export default function App() {
           flippedRows={isFlippedRows}
           activePlotId={activePlotId}
           cardOpen={!!selectedPlot}
+          fieldMode={fieldMode}
+          blackstoneIds={blackstoneIds}
+          noteIds={noteIds}
         />
 
         <div className={styles.legend}>
           {Object.entries(STATUS_META).map(([s, m]) => (
             <div key={s} className={styles.legendItem}>
-              <span className={styles.legendDot} style={{ background: m.color }} />
+              <span className={styles.legendDot} style={{
+                background: fieldMode ? MAP_PLOT_FIELD[s]?.fill : m.color,
+                border: fieldMode ? `2px solid ${MAP_PLOT_FIELD[s]?.stroke}` : 'none',
+              }} />
               {m.label}
             </div>
           ))}
           <div className={styles.legendItem}>
-            <span style={{ color: '#fcd34d', fontSize: 11, lineHeight: 1 }}>★</span>
+            <span style={{ color: fieldMode ? '#b45309' : '#fcd34d', fontSize: 11, lineHeight: 1 }}>★</span>
             Veteran
           </div>
           <div className={styles.legendItem}>
-            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#f87171', flexShrink: 0 }} />
+            <span style={{
+              display: 'inline-block', width: 9, height: 9, borderRadius: 2,
+              background: fieldMode ? '#18181b' : '#e4e4e7', flexShrink: 0,
+            }} />
+            Blackstone
+          </div>
+          <div className={styles.legendItem}>
+            <span style={{
+              display: 'inline-block', width: 9, height: 9, borderRadius: 2,
+              background: fieldMode ? '#eab308' : '#fde047', flexShrink: 0,
+            }} />
+            Note
+          </div>
+          <div className={styles.legendItem}>
+            <span style={{
+              display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+              background: fieldMode ? '#dc2626' : '#f87171', flexShrink: 0,
+            }} />
             Pending changes
           </div>
         </div>
@@ -530,6 +644,13 @@ export default function App() {
             onClose={() => { suppressNextClick.current = true; setSelectedPlot(null) }}
             onViewFull={target => { setDetailTarget(target); setSelectedPlot(null) }}
             pendingIntIds={new Set(changeLog.filter(e => !e.committed && e.internmentId).map(e => e.internmentId))}
+            hasBlackstone={blackstoneIds.has(selectedPlot.id)}
+            noteText={plotFlags[selectedPlot.id]?.note?.text ?? ''}
+            onToggleBlackstone={handleToggleBlackstone}
+            onSaveNote={handleSaveNote}
+            isUnavailable={selectedPlot.statusOverride === 'unavailable'}
+            onToggleUnavailable={p =>
+              handleSetStatusOverride(p, p.statusOverride === 'unavailable' ? null : 'unavailable')}
           />
         )}
 
@@ -539,6 +660,7 @@ export default function App() {
             onBack={() => setDetailTarget(null)}
             onSave={handleSavePlotWithInt}
             onReloadFromTCK={handleReloadFromTCK}
+            onSetStatusOverride={handleSetStatusOverride}
           />
         )}
 
@@ -551,8 +673,16 @@ export default function App() {
         )}
 
         {showChangeLog && (
-          <ChangeLogScreen
+          <ListsScreen
             log={changeLog}
+            flags={plotFlags}
+            initialTab={listsTab}
+            onNavigatePlot={handleNavigateToPlot}
+            onClearBlackstone={handleClearBlackstone}
+            onClearNote={handleClearNote}
+            generalNotes={generalNotes}
+            onEditGeneralNote={n => setNoteModal({ id: n.id, text: n.text })}
+            onDeleteGeneralNote={handleDeleteGeneralNote}
             onClose={() => setShowChangeLog(false)}
             onNavigate={handleNavigateFromLog}
             onCommit={handleCommit}
@@ -560,7 +690,48 @@ export default function App() {
             onDelete={(id) => setChangeLog(prev => removeChangeLogEntry(prev, id))}
           />
         )}
+
+        {noteModal && (
+          <GeneralNoteModal
+            initial={noteModal}
+            onSave={handleSaveGeneralNote}
+            onCancel={() => setNoteModal(null)}
+          />
+        )}
       </main>
+    </div>
+  )
+}
+
+// ── General note composer ─────────────────────────────────────────────────────
+function GeneralNoteModal({ initial, onSave, onCancel }) {
+  const [text, setText] = useState(initial.text ?? '')
+  return (
+    <div className={styles.modalOverlay} onPointerDown={e => {
+      e.stopPropagation()
+      if (e.target === e.currentTarget) onCancel()
+    }}>
+      <div className={styles.modalCard}>
+        <div className={styles.modalTitle}>
+          {initial.id ? 'Edit note' : 'New note'}
+        </div>
+        <textarea
+          className="field-input"
+          rows={6}
+          autoFocus
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="Anything you want to remember — not tied to a specific plot."
+        />
+        <div className={styles.modalBtns}>
+          <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}
+            disabled={!text.trim()}
+            onClick={() => onSave(initial.id, text)}>
+            Save note
+          </button>
+          <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
     </div>
   )
 }

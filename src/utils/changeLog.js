@@ -162,7 +162,7 @@ export const INTERNMENT_TRACKED_FIELDS = [
 
 // Fields we track for plots
 export const PLOT_TRACKED_FIELDS = [
-  'lotType','statusOverride','purchaserLastName',
+  'lotType','purchaserLastName',
   'purchaserFirstName','purchaserAddress','ownerPhone','ownerEmail',
   'purchaseDate','purchasePrice','remarks',
 ]

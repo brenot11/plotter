@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react'
-import { STATUS_META, MAP_PLOT, derivePlotStatus } from '../data/cemeteryData'
+import { MAP_PLOT, MAP_PLOT_FIELD, CANVAS_DARK, CANVAS_FIELD, derivePlotStatus } from '../data/cemeteryData'
 import styles from './MapCanvas.module.css'
 
 const PLOT_W = 22
@@ -9,17 +9,24 @@ const GAP_Y  = 3
 const LOT_LABEL_W  = 38
 const GRAVE_LABEL_H = 22
 
-export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped = false, flippedRows = false, activePlotId = null, cardOpen = false }) {
+export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped = false, flippedRows = false, activePlotId = null, cardOpen = false, fieldMode = false, blackstoneIds = null, noteIds = null }) {
+  // Active palettes for this render
+  const C  = fieldMode ? CANVAS_FIELD : CANVAS_DARK
+  const MP = fieldMode ? MAP_PLOT_FIELD : MAP_PLOT
   const canvasRef = useRef(null)
   const state = useRef({ offsetX: 0, offsetY: 0, scale: 1, dragging: false, lastX: 0, lastY: 0, moved: false })
   const plotsRef    = useRef(plots)
   const changeRef   = useRef(changeLog)
   const activeIdRef = useRef(activePlotId)
-  const cardOpenRef = useRef(cardOpen)
+  const cardOpenRef     = useRef(cardOpen)
+  const blackstoneIdsRef = useRef(blackstoneIds ?? new Set())
+  const noteIdsRef       = useRef(noteIds ?? new Set())
   plotsRef.current    = plots
   changeRef.current   = changeLog
   activeIdRef.current = activePlotId
-  cardOpenRef.current = cardOpen
+  cardOpenRef.current       = cardOpen
+  blackstoneIdsRef.current  = blackstoneIds ?? new Set()
+  noteIdsRef.current        = noteIds ?? new Set()
 
   // Pre-compute set of plotIds with pending changes for fast lookup
   const pendingPlotIds = useRef(new Set())
@@ -52,7 +59,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     const W = canvas.width, H = canvas.height
 
     ctx.clearRect(0, 0, W, H)
-    ctx.fillStyle = '#0a0b0d'
+    ctx.fillStyle = C.background
     ctx.fillRect(0, 0, W, H)
 
     const ps = plotsRef.current
@@ -73,14 +80,14 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
       const y = startY + (lot - 1) * (ph + gy)
       if (y + ph < 0 || y > H) continue
       if (lot % 2 === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.012)'
+        ctx.fillStyle = C.altRowTint
         ctx.fillRect(offsetX, y - gy / 2, W - offsetX, ph + gy)
       }
     }
 
     // Grave number headers
     ctx.font = `${Math.max(8, 9 * scale)}px 'JetBrains Mono', monospace`
-    ctx.fillStyle = '#374151'
+    ctx.fillStyle = C.headerLabel
     ctx.textAlign = 'center'
     for (let g = 5; g <= maxGrave; g += 5) {
       const displayCol = flipped ? (maxGrave - g) : (g - 1)
@@ -91,7 +98,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
 
     // Lot row labels
     ctx.font = `${Math.max(7, 9 * scale)}px 'JetBrains Mono', monospace`
-    ctx.fillStyle = '#374151'
+    ctx.fillStyle = C.headerLabel
     ctx.textAlign = 'right'
 
     const plotMap = getPlotMap()
@@ -103,7 +110,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
 
       // Lot label — brighter and larger
       const lotFontSize = Math.max(9, 11 * scale)
-      ctx.fillStyle = '#9ca3af'
+      ctx.fillStyle = C.lotLabel
       ctx.textAlign = 'right'
       ctx.font = `500 ${lotFontSize}px 'JetBrains Mono', monospace`
       ctx.fillText(String(lot), offsetX + llw - 5 * scale, y + ph * 0.67)
@@ -115,7 +122,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
 
         const plot   = plotMap[`${lot}_${grave}`]
         const status = plot ? derivePlotStatus(plot) : null
-        const mp     = MAP_PLOT[status ?? 'unavailable'] ?? MAP_PLOT.unavailable
+        const mp     = MP[status ?? 'unavailable'] ?? MP.unavailable
         const r      = Math.max(1, 2 * scale)
 
         // Check for pending changes on this plot
@@ -130,8 +137,8 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
 
         // Stroke — red if pending changes, otherwise normal status stroke
         if (hasPending) {
-          ctx.strokeStyle = '#f87171'
-          ctx.lineWidth   = 1.5 * scale
+          ctx.strokeStyle = C.pendingStroke
+          ctx.lineWidth   = C.pendingWidth * scale
           ctx.beginPath()
           if (ctx.roundRect) ctx.roundRect(x, y, pw, ph, r)
           else               ctx.rect(x, y, pw, ph)
@@ -148,7 +155,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
         // Grave number — always visible at top of plot
         const graveLabel = plot ? String(plot.grave) : String(grave)
         const numFontSize = Math.max(6, Math.min(10, pw * 0.42))
-        ctx.fillStyle = plot ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)'
+        ctx.fillStyle = plot ? C.graveNum : C.graveNumEmpty
         ctx.font = `${numFontSize}px 'JetBrains Mono', monospace`
         ctx.textAlign = 'center'
         ctx.fillText(graveLabel, x + pw / 2, y + numFontSize + 2 * scale)
@@ -159,7 +166,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
           ctx.save()
           ctx.translate(x + pw / 2, y + ph / 2)
           ctx.rotate(-Math.PI / 2)
-          ctx.fillStyle = 'rgba(255,255,255,0.09)'
+          ctx.fillStyle = C.lotNumInPlot
           ctx.font = `${lotNumSize}px 'JetBrains Mono', monospace`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
@@ -176,7 +183,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
 
           // Cyan dot for count of unedited internments
           if (uneditedCount > 0) {
-            ctx.fillStyle = '#00d4c8'
+            ctx.fillStyle = C.multiDot
             ctx.beginPath()
             ctx.arc(x + 3 * scale, y + ph - 3 * scale, 2.5 * scale, 0, Math.PI * 2)
             ctx.fill()
@@ -185,7 +192,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
           // Red dot for edited internments, offset right of cyan dot
           if (editedInts.length > 0) {
             const dotX = uneditedCount > 0 ? x + 9 * scale : x + 3 * scale
-            ctx.fillStyle = '#f87171'
+            ctx.fillStyle = C.pendingDot
             ctx.beginPath()
             ctx.arc(dotX, y + ph - 3 * scale, 2.5 * scale, 0, Math.PI * 2)
             ctx.fill()
@@ -198,7 +205,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
         // Surname label in lower portion at higher zoom
         const primaryInt = plot?.internments?.[0]
         if (primaryInt?.interredLastName && scale > 1.0) {
-          ctx.fillStyle = 'rgba(255,255,255,0.3)'
+          ctx.fillStyle = C.surname
           const nameFontSize = Math.max(5, 5 * scale)
           ctx.font = `${nameFontSize}px 'JetBrains Mono', monospace`
           ctx.textAlign = 'center'
@@ -211,30 +218,58 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
 
         // Active plot highlight — white outline, drawn on top of everything
         if (plot?.id === activeIdRef.current) {
-          ctx.strokeStyle = 'rgba(255,255,255,0.85)'
-          ctx.lineWidth   = 2 * scale
+          ctx.strokeStyle = C.activeStroke
+          ctx.lineWidth   = C.activeWidth * scale
           ctx.beginPath()
           if (ctx.roundRect) ctx.roundRect(x, y, pw, ph, r)
           else               ctx.rect(x, y, pw, ph)
           ctx.stroke()
         }
+        // ── Flag icons — all stacked on the LEFT edge so they can never
+        // collide with a neighbouring plot's icons on the right.
+        const iconX = x   // centred on the plot's left border
+
+        // Veteran star — top of the stack
         const hasVet = plot?.internments?.some(i => i.veteran)
         if (hasVet && scale > 0.6) {
-          const cx = x + pw
-          const cy = y + ph * 0.28
+          const cy = y + ph * 0.25
           const r1 = 4.5 * scale
           const r2 = 2.0 * scale
           const pts = 5
-          ctx.fillStyle = '#fcd34d'
+          ctx.fillStyle = C.veteranStar
           ctx.beginPath()
           for (let i = 0; i < pts * 2; i++) {
             const angle = (i * Math.PI / pts) - Math.PI / 2
             const r = i % 2 === 0 ? r1 : r2
-            const sx = cx + Math.cos(angle) * r
-            const sy = cy + Math.sin(angle) * r
+            const sx = iconX + Math.cos(angle) * r
+            const sy = cy    + Math.sin(angle) * r
             i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)
           }
           ctx.closePath()
+          ctx.fill()
+        }
+
+        // Blackstone needed — middle of the stack
+        if (plot && blackstoneIdsRef.current.has(plot.id) && scale > 0.6) {
+          const sz = 7 * scale
+          ctx.fillStyle = C.blackstone
+          ctx.beginPath()
+          const bx = iconX - sz / 2
+          const by = y + ph * 0.50 - sz / 2
+          if (ctx.roundRect) ctx.roundRect(bx, by, sz, sz, 1 * scale)
+          else               ctx.rect(bx, by, sz, sz)
+          ctx.fill()
+        }
+
+        // Quick note — bottom of the stack
+        if (plot && noteIdsRef.current.has(plot.id) && scale > 0.6) {
+          const sz = 7 * scale
+          ctx.fillStyle = C.noteDot
+          ctx.beginPath()
+          const nx = iconX - sz / 2
+          const ny = y + ph * 0.75 - sz / 2
+          if (ctx.roundRect) ctx.roundRect(nx, ny, sz, sz, 1 * scale)
+          else               ctx.rect(nx, ny, sz, sz)
           ctx.fill()
         }
       }
@@ -243,10 +278,10 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     // Section label watermark
     const secName = ps[0]?.section ?? ''
     ctx.font = `600 ${Math.max(11, 14 * scale)}px 'Geist', sans-serif`
-    ctx.fillStyle = 'rgba(0, 212, 200, 0.04)'
+    ctx.fillStyle = C.watermark
     ctx.textAlign = 'center'
     ctx.fillText(secName.toUpperCase(), W / 2, H - 14)
-  }, [getLayoutInfo, getPlotMap, flipped, flippedRows])
+  }, [getLayoutInfo, getPlotMap, flipped, flippedRows, fieldMode])
 
   // ── Resize observer ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -268,7 +303,7 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
     return () => ro.disconnect()
   }, [draw, getLayoutInfo])
 
-  useEffect(() => { draw() }, [draw, plots, flipped, flippedRows, activePlotId])
+  useEffect(() => { draw() }, [draw, plots, flipped, flippedRows, activePlotId, fieldMode, blackstoneIds, noteIds])
 
   // ── Hit-test ───────────────────────────────────────────────────────────────
   const getPlotAt = useCallback((cx, cy) => {

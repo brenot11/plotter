@@ -176,7 +176,7 @@
   position: absolute;
   bottom: 16px;
   left: 16px;
-  background: rgba(15, 17, 20, 0.85);
+  background: var(--legend-bg, rgba(15, 17, 20, 0.85));
   backdrop-filter: blur(8px);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
@@ -238,3 +238,155 @@
   border-radius: 2px;
   flex-shrink: 0;
 }
+
+
+/* ── Field mode toggle button ─────────────────────────────────────────────── */
+.fieldBtn {
+  font-size: 15px;
+  padding: 5px 11px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+.fieldBtn:hover { color: var(--text-primary); }
+.fieldBtnActive {
+  color: #92400e !important;
+  border-color: #b45309 !important;
+  background: #fef3c7 !important;
+}
+
+/* ── Field mode: heavier, higher-contrast chrome ──────────────────────────── */
+:global(html[data-theme="field"]) .legend {
+  --legend-bg: rgba(255, 255, 255, 0.94);
+  border-width: 2px;
+}
+:global(html[data-theme="field"]) .legendItem {
+  color: #000;
+  font-weight: 600;
+  font-size: 12px;
+}
+:global(html[data-theme="field"]) .legendDot {
+  width: 11px;
+  height: 11px;
+}
+:global(html[data-theme="field"]) .topbar,
+:global(html[data-theme="field"]) .sectionBar {
+  border-bottom-width: 2px;
+}
+:global(html[data-theme="field"]) .appTitle { color: var(--accent-bright); }
+:global(html[data-theme="field"]) .cemTab { font-weight: 600; }
+:global(html[data-theme="field"]) .cemTabActive {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+:global(html[data-theme="field"]) .secBtn {
+  font-weight: 600;
+  color: #3f3f46;
+}
+:global(html[data-theme="field"]) .secBtnActive {
+  background: #fff;
+  border-color: #52525b;
+  color: #000;
+}
+:global(html[data-theme="field"]) .sectionLabel { color: #52525b; }
+:global(html[data-theme="field"]) .stat { color: #3f3f46; font-weight: 600; }
+:global(html[data-theme="field"]) .stat strong { font-weight: 700; }
+:global(html[data-theme="field"]) .searchInput {
+  border-width: 2px;
+  font-weight: 500;
+}
+:global(html[data-theme="field"]) .badge {
+  background: #b91c1c;
+  color: #fff;
+}
+:global(html[data-theme="field"]) .titleSymbol {
+  background: var(--accent-bright);
+  box-shadow: none;
+}
+
+
+/* ── Search field with clear button ───────────────────────────────────────── */
+.searchWrap { position: relative; display: flex; align-items: center; }
+.searchWrap .searchInput { padding-right: 30px; }
+
+.searchClear {
+  position: absolute;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-raised);
+  border: none;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+}
+.searchClear:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+:global(html[data-theme="field"]) .searchClear {
+  background: #d4d4d8;
+  color: #18181b;
+  font-weight: 700;
+}
+:global(html[data-theme="field"]) .searchClear:hover { background: #a1a1aa; }
+
+/* ── General note button + modal ──────────────────────────────────────────── */
+.addNoteBtn {
+  color: var(--note-btn, #fde047) !important;
+  border-color: var(--note-btn-brd, rgba(253,224,71,0.4)) !important;
+  font-weight: 500;
+}
+.addNoteBtn:hover {
+  background: rgba(253,224,71,0.12) !important;
+  border-color: #fde047 !important;
+}
+:global(html[data-theme="field"]) .addNoteBtn {
+  --note-btn: #713f12;
+  --note-btn-brd: #a16207;
+  font-weight: 700;
+}
+:global(html[data-theme="field"]) .addNoteBtn:hover { background: #fef9c3 !important; }
+
+.modalOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+}
+:global(html[data-theme="field"]) .modalOverlay { background: rgba(0,0,0,0.45); }
+
+.modalCard {
+  width: 420px;
+  max-width: 92vw;
+  background: var(--bg-mid);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+:global(html[data-theme="field"]) .modalCard {
+  border-width: 2px;
+  border-color: #52525b;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modalBtns { display: flex; gap: 8px; }
