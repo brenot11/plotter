@@ -639,15 +639,16 @@ export default function App() {
             </div>
             <div className={styles.legendItem}>
               <span style={{
-                display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-                background: fieldMode ? '#ea580c' : '#00d4c8', flexShrink: 0,
-              }} />
+                color: fieldMode ? '#15803d' : '#4ade80',
+                fontSize: 14, fontWeight: 700, lineHeight: 1,
+              }}>+</span>
               2+ internments
             </div>
             <div className={styles.legendItem}>
               <span style={{
-                display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-                background: fieldMode ? '#dc2626' : '#f87171', flexShrink: 0,
+                display: 'inline-block', width: 9, height: 9, borderRadius: 2,
+                background: 'transparent', flexShrink: 0,
+                border: `2px solid ${fieldMode ? '#dc2626' : '#f87171'}`,
               }} />
               Pending edit
             </div>

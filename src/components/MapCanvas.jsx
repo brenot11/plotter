@@ -160,8 +160,16 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
         ctx.textAlign = 'center'
         ctx.fillText(graveLabel, x + pw / 2, y + numFontSize + 2 * scale)
 
-        // Lot number — rotated vertically in center of plot, only when zoomed in
-        if (scale > 1.2) {
+        // Which flag icons does this plot carry? They occupy the plot's
+        // centre, so the lot number steps aside when any are present.
+        const iconVet   = !!plot?.internments?.some(i => i.veteran)
+        const iconStone = !!(plot && blackstoneIdsRef.current.has(plot.id))
+        const iconNote  = !!(plot && noteIdsRef.current.has(plot.id))
+        const iconMulti = (plot?.internments?.length ?? 0) > 1
+        const anyIcon   = iconVet || iconStone || iconNote || iconMulti
+
+        // Lot number — rotated in the centre, only when zoomed in and unobstructed
+        if (scale > 1.2 && !anyIcon) {
           const lotNumSize = Math.max(5, Math.min(ph * 0.45, 9 * scale))
           ctx.save()
           ctx.translate(x + pw / 2, y + ph / 2)
@@ -173,33 +181,6 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
           ctx.fillText(String(lot), 0, 0)
           ctx.restore()
           ctx.textBaseline = 'alphabetic'
-        }
-
-        // Multi-internment badge — cyan dot bottom-left
-        // If this plot has multiple internments, show a red dot for edited ones
-        if (plot?.internments?.length > 1 && scale > 0.5) {
-          const editedInts = plot.internments.filter(i => pendingIntIds.current.has(i.id))
-          const uneditedCount = plot.internments.length - editedInts.length
-
-          // Cyan dot for count of unedited internments
-          if (uneditedCount > 0) {
-            ctx.fillStyle = C.multiDot
-            ctx.beginPath()
-            ctx.arc(x + 3 * scale, y + ph - 3 * scale, 2.5 * scale, 0, Math.PI * 2)
-            ctx.fill()
-          }
-
-          // Red dot for edited internments, offset right of cyan dot
-          if (editedInts.length > 0) {
-            const dotX = uneditedCount > 0 ? x + 9 * scale : x + 3 * scale
-            ctx.fillStyle = C.pendingDot
-            ctx.beginPath()
-            ctx.arc(dotX, y + ph - 3 * scale, 2.5 * scale, 0, Math.PI * 2)
-            ctx.fill()
-          }
-        } else if (plot?.internments?.length === 1 && scale > 0.5) {
-          // Single internment — just show red dot if it has pending changes
-          // (the outline already shows it, but dot is clearer at small sizes)
         }
 
         // Surname label in lower portion at higher zoom
@@ -225,52 +206,66 @@ export default function MapCanvas({ plots, onPlotClick, changeLog = [], flipped 
           else               ctx.rect(x, y, pw, ph)
           ctx.stroke()
         }
-        // ── Flag icons — all stacked on the LEFT edge so they can never
-        // collide with a neighbouring plot's icons on the right.
-        const iconX = x   // centred on the plot's left border
+        // ── Flag icons — fixed 2×2 grid in the plot's centre.
+        // Slots are fixed rather than packed, so an icon always means the
+        // same thing in the same place:
+        //     ★ veteran   |  + multiple internments
+        //     ■ blackstone|  ■ note
+        if (anyIcon && scale > 0.6) {
+          const sz   = Math.min(pw * 0.28, ph * 0.17)
+          const colL = x + pw * 0.29
+          const colR = x + pw * 0.71
+          const rowT = y + ph * 0.42
+          const rowB = y + ph * 0.62
 
-        // Veteran star — top of the stack
-        const hasVet = plot?.internments?.some(i => i.veteran)
-        if (hasVet && scale > 0.6) {
-          const cy = y + ph * 0.25
-          const r1 = 4.5 * scale
-          const r2 = 2.0 * scale
-          const pts = 5
-          ctx.fillStyle = C.veteranStar
-          ctx.beginPath()
-          for (let i = 0; i < pts * 2; i++) {
-            const angle = (i * Math.PI / pts) - Math.PI / 2
-            const r = i % 2 === 0 ? r1 : r2
-            const sx = iconX + Math.cos(angle) * r
-            const sy = cy    + Math.sin(angle) * r
-            i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)
+          // Veteran — top left
+          if (iconVet) {
+            const r1 = sz * 0.62, r2 = sz * 0.27, pts = 5
+            ctx.fillStyle = C.veteranStar
+            ctx.beginPath()
+            for (let i = 0; i < pts * 2; i++) {
+              const a = (i * Math.PI / pts) - Math.PI / 2
+              const r = i % 2 === 0 ? r1 : r2
+              const sx = colL + Math.cos(a) * r
+              const sy = rowT + Math.sin(a) * r
+              i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)
+            }
+            ctx.closePath()
+            ctx.fill()
           }
-          ctx.closePath()
-          ctx.fill()
-        }
 
-        // Blackstone needed — middle of the stack
-        if (plot && blackstoneIdsRef.current.has(plot.id) && scale > 0.6) {
-          const sz = 7 * scale
-          ctx.fillStyle = C.blackstone
-          ctx.beginPath()
-          const bx = iconX - sz / 2
-          const by = y + ph * 0.50 - sz / 2
-          if (ctx.roundRect) ctx.roundRect(bx, by, sz, sz, 1 * scale)
-          else               ctx.rect(bx, by, sz, sz)
-          ctx.fill()
-        }
+          // Multiple internments — top right, green plus
+          if (iconMulti) {
+            const arm = sz * 0.40
+            ctx.strokeStyle = C.multiDot
+            ctx.lineWidth   = Math.max(1, sz * 0.22)
+            ctx.lineCap     = 'round'
+            ctx.beginPath()
+            ctx.moveTo(colR - arm, rowT); ctx.lineTo(colR + arm, rowT)
+            ctx.moveTo(colR, rowT - arm); ctx.lineTo(colR, rowT + arm)
+            ctx.stroke()
+            ctx.lineCap = 'butt'
+          }
 
-        // Quick note — bottom of the stack
-        if (plot && noteIdsRef.current.has(plot.id) && scale > 0.6) {
-          const sz = 7 * scale
-          ctx.fillStyle = C.noteDot
-          ctx.beginPath()
-          const nx = iconX - sz / 2
-          const ny = y + ph * 0.75 - sz / 2
-          if (ctx.roundRect) ctx.roundRect(nx, ny, sz, sz, 1 * scale)
-          else               ctx.rect(nx, ny, sz, sz)
-          ctx.fill()
+          // Blackstone — bottom left
+          if (iconStone) {
+            ctx.fillStyle = C.blackstone
+            ctx.beginPath()
+            const bx = colL - sz / 2, by = rowB - sz / 2
+            if (ctx.roundRect) ctx.roundRect(bx, by, sz, sz, sz * 0.18)
+            else               ctx.rect(bx, by, sz, sz)
+            ctx.fill()
+          }
+
+          // Note — bottom right
+          if (iconNote) {
+            ctx.fillStyle = C.noteDot
+            ctx.beginPath()
+            const nx = colR - sz / 2, ny = rowB - sz / 2
+            if (ctx.roundRect) ctx.roundRect(nx, ny, sz, sz, sz * 0.18)
+            else               ctx.rect(nx, ny, sz, sz)
+            ctx.fill()
+          }
         }
       }
     }
